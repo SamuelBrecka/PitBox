@@ -23,11 +23,15 @@ Analyze product requirements, maintain domain consistency, model performant and 
    - Isolate file uploads behind the `FileStorageService` abstraction.
 4. **Execution Planning:**
    - Write structured, deterministic task plans into `docs/plans/task.md`.
+5. **System & Feature Documentation:**
+   - Synchronize `docs/architecture.md` (API specs, DTO schemas, environment variables, architectural trade-offs) with every completed implementation step.
+   - Enforce the Mandatory Feature Documentation Rule: verify documentation references in `docs/plans/task.md` before marking any task as complete.
 
 ## Operational Rules & Guardrails
 - **Zero Production Code:** NEVER write or edit `.java`, `.tsx`, `.ts`, or `.css` implementation files.
 - **Contract-First:** Never permit the Coder or Designer to begin implementation without an approved API specification and DB schema in `docs/plans/task.md`.
 - **Memory Gatekeeper:** Reject any dependency, caching strategy, or query pattern that threatens the 400 MB RAM boundary (e.g., avoid Hibernate second-level cache, avoid unbounded in-memory streams).
+- **Documentation Completeness:** Reject task closure if architectural contracts, environment variables, or schema updates are undocumented in `docs/architecture.md`.
 
 ## Hand-off Artifact: `docs/plans/task.md`
 Každý plán musí obsahovať:

@@ -58,6 +58,19 @@ flowchart LR
 
 ## 2. Visual Identity & Color Palette (PitBox)
 
+PitBox uses a targeted color palette engineered for high contrast, clean automotive service dashboards, and clear status communication:
+
+| Token Name | Hex Code | Role / Usage |
+| :--- | :--- | :--- |
+| `pitbox-steel` | `#3368A0` | Primary brand accent, top navbar background, primary CTAs, active highlights |
+| `pitbox-glacier` | `#66A3BF` | Secondary brand color, gauge indicators, chart series, secondary action icons |
+| `pitbox-seafoam` | `#C8DFDB` | Soft panel backgrounds, card borders, timeline headers, status pill badges |
+| `pitbox-cream` | `#F2EFE7` | Viewport base background canvas, warm neutral page fill |
+| `pitbox-dark` | `#1C2E42` | Primary typography color, high-contrast headings, text labels |
+| `white` | `#FFFFFF` | Elevated container cards, modals, popovers |
+
+**Typography:** Standardized sans-serif font stack (`Inter`, `system-ui`, `-apple-system`, `sans-serif`) optimized for legibility across mobile and desktop viewports.
+
 ---
 
 ## 3. Database Architecture (PostgreSQL ER Diagram)
@@ -150,6 +163,13 @@ erDiagram
     }
 ```
 
+### Physical Database Migration (Flyway V1)
+Implemented via Flyway migration [`V1__initial_schema.sql`](file:///C:/Users/brecka/source/repos/PitBox/backend/src/main/resources/db/migration/V1__initial_schema.sql):
+- **Primary Keys:** UUID v4 default `gen_random_uuid()`.
+- **Foreign Keys:** Cascading deletes (`ON DELETE CASCADE`) bound to parent records (`users`, `vehicles`, `service_records`).
+- **Indexes:** Foreign key coverage on `idx_vehicles_user_id`, `idx_mileage_logs_vehicle_id`, `idx_service_records_vehicle_id`, `idx_service_items_record_id`, `idx_attachments_record_id`, and `idx_reminders_vehicle_id`.
+- **Audit Fields:** `created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP`.
+
 ---
 
 ## 4. Lightweight Technology Stack (Zero-Cost, < 400 MB RAM for ~20 Users)
@@ -186,6 +206,23 @@ File operations are decoupled behind a `FileStorageService` interface:
   - `React Hook Form + Zod`: Dynamic schema-validated forms.
   - `Recharts`: Composable expense analytics charts.
 
+### Environment Configuration & Secrets Matrix:
+
+System parameters are externalized in `.env` (template in [`.env.example`](file:///C:/Users/brecka/source/repos/PitBox/.env.example)) and injected via [`docker-compose.yml`](file:///C:/Users/brecka/source/repos/PitBox/docker-compose.yml):
+
+| Variable | Default / Example | Target Container | Purpose |
+| :--- | :--- | :--- | :--- |
+| `POSTGRES_DB` | `pitbox` | `postgres`, `backend` | PostgreSQL database name |
+| `POSTGRES_USER` | `pitbox` | `postgres`, `backend` | PostgreSQL database user |
+| `POSTGRES_PASSWORD` | `pitbox_secure_password_change_me` | `postgres`, `backend` | PostgreSQL database password |
+| `POSTGRES_PORT` | `5432` | `postgres` (host) | External host port mapping |
+| `BACKEND_PORT` | `8080` | `backend` (host) | External host port mapping for Spring Boot |
+| `FRONTEND_PORT` | `80` | `frontend` (host) | External host port mapping for Nginx |
+| `JWT_SECRET` | `404E63...` (256-bit min) | `backend` | HMAC-SHA secret for stateless JWT signing |
+| `JWT_EXPIRATION_MS` | `86400000` (24h) | `backend` | Access token lifespan in milliseconds |
+| `UPLOAD_DIR` | `/app/uploads` | `backend` | Filesystem upload directory path |
+| `JAVA_OPTS` | `-Xms64m -Xmx256m -XX:+UseG1GC` | `backend` | JRE memory & GC tuning enforcing < 400 MB RAM budget |
+
 ---
 
 ## 5. Domain Rules & Core Invariants
@@ -205,9 +242,48 @@ File operations are decoupled behind a `FileStorageService` interface:
 
 ## 6. Implementation Roadmap
 
-1. **Step 1 – Foundations & Environment:** Configure `docker-compose.yml` (Postgres, Backend, Frontend). Initialize Spring Boot 3 with Flyway and React + Vite with Tailwind CSS and PitBox tokens.
+1. **Step 1 – Foundations & Environment:** `[COMPLETED]`
+   - Configured [`docker-compose.yml`](file:///C:/Users/brecka/source/repos/PitBox/docker-compose.yml) orchestrating `postgres:16-alpine`, `pitbox-backend` (Spring Boot 3.3.5), and `pitbox-frontend` (Nginx + React 18).
+   - Applied Flyway migration [`V1__initial_schema.sql`](file:///C:/Users/brecka/source/repos/PitBox/backend/src/main/resources/db/migration/V1__initial_schema.sql) defining relational schema with UUIDs, cascade constraints, and indexes.
+   - Externalized configuration to [`.env.example`](file:///C:/Users/brecka/source/repos/PitBox/.env.example) and parameterized memory limits (`JAVA_OPTS: -Xmx256m`, Docker memory limits).
+   - Implemented public health endpoint [`/api/health`](file:///C:/Users/brecka/source/repos/PitBox/backend/src/main/java/com/pitbox/controller/HealthController.java) and stateless [`SecurityConfig`](file:///C:/Users/brecka/source/repos/PitBox/backend/src/main/java/com/pitbox/config/SecurityConfig.java) baseline.
+   - Built React frontend scaffolding with Tailwind tokens (`#3368A0`, `#66A3BF`, `#C8DFDB`, `#F2EFE7`, `#1C2E42`) and Vitest test harness.
 2. **Step 2 – Public Landing Page & JWT Auth:** Implement unauthenticated landing screen (`/`), authentication routes (`/login`, `/register`), and token-protected private route guards.
 3. **Step 3 – Garage & Vehicle Management:** Vehicle CRUD endpoints, client-side photo compression, profile image uploads, and quick odometer updates.
 4. **Step 4 – Service Records (Master-Detail):** Dynamic line-item entry form, cost calculation, service category filtering, and odometer auto-advance logic.
 5. **Step 5 – File Attachments & Gallery:** Multi-file upload handlers, local volume persistence via `FileStorageService`, and timeline attachment previews.
 6. **Step 6 – Reminders, Gauges, & Analytics:** Dynamic interval calculation engines, SVG progress gauges (Oil Life, STK inspection), and Recharts expense visualizers.
+
+---
+
+## 7. Implemented API Contracts & Baseline Services
+
+### 7.1 Health Check API
+- **Endpoint:** `GET /api/health`
+- **Class:** [`HealthController`](file:///C:/Users/brecka/source/repos/PitBox/backend/src/main/java/com/pitbox/controller/HealthController.java)
+- **Access:** Public (whitelisted in `SecurityConfig`)
+- **Response Status:** `200 OK`
+- **Response Schema:**
+  ```json
+  {
+    "status": "UP",
+    "service": "pitbox-backend"
+  }
+  ```
+- **Consumer:** Frontend boot check ([`App.tsx`](file:///C:/Users/brecka/source/repos/PitBox/frontend/src/App.tsx)) and container orchestration probes.
+
+### 7.2 Security Baseline
+- **Configuration:** [`SecurityConfig`](file:///C:/Users/brecka/source/repos/PitBox/backend/src/main/java/com/pitbox/config/SecurityConfig.java)
+- **Session Policy:** `SessionCreationPolicy.STATELESS` (stateless JWT).
+- **Protection:** CSRF disabled, CORS pre-flight permitted with credentials.
+- **Route Authorization:**
+  - Whitelisted: `/api/health`, `/api/auth/**` (permitAll).
+  - Authenticated: All other endpoints require valid Bearer token.
+- **Password Encoder:** `BCryptPasswordEncoder` bean.
+
+### 7.3 Frontend Reverse Proxy
+- **Configuration:** [`frontend/nginx.conf`](file:///C:/Users/brecka/source/repos/PitBox/frontend/nginx.conf)
+- **SPA Fallback:** `try_files $uri $uri/ /index.html` with gzip compression level 6.
+- **Reverse Proxy Routing:**
+  - `/api/` ➔ `http://backend:8080/api/` (Preserving host and real IP headers).
+  - `/uploads/` ➔ `http://backend:8080/uploads/` (Serving uploaded receipts and vehicle photos).
