@@ -1,10 +1,11 @@
-| Task ID | Task Description                                                         | Status      | Evidence                                          |
-| ------- | ------------------------------------------------------------------------ | ----------- | ------------------------------------------------- |
-| TASK-1  | Initialize documentation and copy architecture proposal                  | DONE        | docs/architecture.md created                      |
-| TASK-2  | Configure project-level rules (GEMINI.md) with PitBox stack & guardrails | DONE        | GEMINI.md created                                 |
-| TASK-3  | Implement Dev Cycle skill (.agent/skills/dev-cycle/SKILL.md)             | DONE        | .agent/skills/dev-cycle/SKILL.md created          |
-| TASK-4  | Define specialized agent profiles in .agent/agents/                      | DONE        | .agent/agents/{architect,coder,tester}.md created |
-| TASK-5  | Verify setup and file tree                                               | DONE        | Verified via Get-ChildItem (7 files active)       |
-| TASK-6  | Step 1 - Foundations & Environment (docker-compose, Spring Boot 3 + Flyway, React + Vite + Tailwind + PitBox tokens) | DONE        | docs/architecture.md updated (API, Flyway DDL, tokens, env); mvnw test (1/1 green), npm test (1/1 green), lint & tsc clean |
-| TASK-7  | Externalize secrets to .env and configure .env.example                    | DONE        | .env & .env.example created; configs parameterized; docs/architecture.md env matrix updated; tests pass |
-| TASK-8  | Step 2 - Public Landing Page & JWT Auth (Backend auth API, JWT filter, Frontend routes & guards) | DONE        | docs/architecture.md & docs/auth-and-security.md updated (API contract tables, DTO schemas, ADRs, Mermaid flows); mvnw test (9/9 green), npm test (6/6 green), npm run lint (0 warnings), npm run build (tsc & vite green) |
+| Task ID | Task Description                                                         | Status | Evidence                                          |
+| ------- | ------------------------------------------------------------------------ | ------ | ------------------------------------------------- |
+| TASK-1  | Initialize documentation and copy architecture proposal                  | DONE   | docs/architecture.md created                      |
+| TASK-2  | Configure project-level rules (GEMINI.md) with PitBox stack & guardrails | DONE   | GEMINI.md created                                 |
+| TASK-3  | Implement Dev Cycle skill (.agent/skills/dev-cycle/SKILL.md)             | DONE   | .agent/skills/dev-cycle/SKILL.md created          |
+| TASK-4  | Define specialized agent profiles in .agent/agents/                      | DONE   | .agent/agents/{architect,coder,tester}.md created |
+| TASK-5  | Verify setup and file tree                                               | DONE   | Verified via Get-ChildItem (7 files active)       |
+| TASK-6  | Step 1 - Foundations & Environment (docker-compose, Spring Boot 3 + Flyway, React + Vite + Tailwind + PitBox tokens) | DONE   | docs/architecture.md updated (API, Flyway DDL, tokens, env); mvnw test (1/1 green), npm test (1/1 green), lint & tsc clean |
+| TASK-7  | Externalize secrets to .env and configure .env.example                    | DONE   | .env & .env.example created; configs parameterized; docs/architecture.md env matrix updated; tests pass |
+| TASK-8  | Step 2 - Public Landing Page & JWT Auth (Backend auth API, JWT filter, Frontend routes & guards) | DONE   | docs/architecture.md & docs/auth-and-security.md updated; mvnw test (9/9 green), npm test (6/6 green), npm run lint (0 warnings), npm run build (tsc & vite green) |
+| TASK-9  | Step 3 - Garage & Vehicle Management (Vehicle CRUD, Quick Odometer, Image Compression & FileStorageService) | DONE   | Docs: docs/README.md, docs/features/mileage-engine.md, docs/features/media-upload.md, docs/api-reference.md, docs/database.md, docs/architecture.md; Tests: mvnw test (18/18 green), npm test (9/9 green), npm run lint (0 warnings), npm run build (tsc & vite green) |

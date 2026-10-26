@@ -37,14 +37,39 @@ All feature implementations, database migrations, UI enhancements, and bugfixes 
    - All relational schema alterations must be managed strictly through forward-only Flyway SQL migrations (`src/main/resources/db/migration/V{version}__{description}.sql`).
 
 
-## 4. Mandatory Feature Documentation Rule
+## 4. Modular Documentation Architecture & Maintenance Rule
 
-Whenever implementing or refactoring a substantial feature (e.g., new domain entities, new API endpoints, auth flows, calculation engines, UI views, or storage integrations):
+Do NOT bloat single markdown files into monoliths. Documentation must follow a structured, multi-file modular layout under `docs/` indexed by `docs/README.md`.
 
-1. **Update `docs/architecture.md`:**
-   - Synchronize the API specification tables, DTO schemas, and Mermaid ERD/flowcharts with actual implementation.
-   - Document any new environment variables or architectural trade-offs.
-2. **Dedicated Documentation for Complex Subsystems:**
-   - If introducing complex modules (such as interval scheduling algorithms, compression utilities, or external proxies), provide a dedicated markdown specification under `docs/` detailing its behavior, edge cases, and interfaces.
-3. **Task Completion Requirement:**
-   - A task cannot be marked as `DONE` in `docs/plans/task.md` without referencing the updated documentation along with passing test evidence.
+### Required Directory Layout:
+```text
+docs/
+├── README.md                 # Full documentation index & table of contents
+├── architecture.md           # System design, high-level stack, and RAM limits
+├── database.md               # DB ERD schema, table definitions, and Flyway rules
+├── api-reference.md          # REST API endpoints, DTO contracts, and error responses
+├── security-auth.md          # JWT auth flow, BCrypt, permissions, and tenant isolation
+└── features/                 # Dedicated specifications for core domain subsystems
+    ├── mileage-engine.md     # Forward-only odometer sync & audit logs
+    ├── reminders.md          # Dynamic interval rules (mileage, date, overdue statuses)
+    ├── media-upload.md       # Client-side image compression & FileStorageService
+    └── tco-statistics.md     # Total cost calculation & Recharts analytics
+
+```
+
+### Documentation Workflow for Every Substantial Feature:
+
+Whenever a new feature is added, modified, or refactored:
+
+1. **Create or Update Subsystem Docs:**
+* Add/edit the dedicated markdown file under `docs/features/<feature-name>.md` detailing its behavior, business rules, edge cases, and interfaces.
+
+
+2. **Synchronize Contracts:**
+* Update `docs/api-reference.md` and `docs/database.md` if routes, DTOs, or Flyway migrations were introduced.
+
+3. **Maintain the Root Index:**
+* Ensure the new or updated document is clearly linked and described in `docs/README.md`.
+
+4. **Completion Gate:**
+* A task cannot be marked as `DONE` in `docs/plans/task.md` without citing the corresponding documentation files created or updated in `docs/`.

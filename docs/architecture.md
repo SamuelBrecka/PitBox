@@ -281,7 +281,14 @@ System parameters are externalized in `.env` (template in [`.env.example`](file:
    - Built authentication screens ([`LoginPage.tsx`](file:///C:/Users/brecka/source/repos/PitBox/frontend/src/pages/LoginPage.tsx), [`RegisterPage.tsx`](file:///C:/Users/brecka/source/repos/PitBox/frontend/src/pages/RegisterPage.tsx)) and guarded routes via [`ProtectedRoute.tsx`](file:///C:/Users/brecka/source/repos/PitBox/frontend/src/components/ProtectedRoute.tsx) directing to [`GaragePage.tsx`](file:///C:/Users/brecka/source/repos/PitBox/frontend/src/pages/GaragePage.tsx).
    - Zero-dependency client-side history router ([`Router.tsx`](file:///C:/Users/brecka/source/repos/PitBox/frontend/src/router/Router.tsx)) and [`AuthContext.tsx`](file:///C:/Users/brecka/source/repos/PitBox/frontend/src/context/AuthContext.tsx).
    - Dedicated subsystem specification: [docs/auth-and-security.md](auth-and-security.md).
-3. **Step 3 – Garage & Vehicle Management:** Vehicle CRUD endpoints, client-side photo compression, profile image uploads, and quick odometer updates.
+3. **Step 3 – Garage & Vehicle Management:** `[COMPLETED]`
+   - Implemented Vehicle CRUD REST endpoints (`GET /api/vehicles`, `GET /api/vehicles/{id}`, `POST /api/vehicles`, `PUT /api/vehicles/{id}`, `DELETE /api/vehicles/{id}`).
+   - Implemented forward-only odometer engine with `PATCH /api/vehicles/{id}/mileage` and `GET /api/vehicles/{id}/mileage-logs` appending immutable audit logs to `MILEAGE_LOGS`.
+   - Built media upload and storage abstraction with `FileStorageService` and `LocalFileStorageService`, static WebMvc resource handler `/uploads/**`, and multipart upload/delete endpoints (`POST /api/vehicles/{id}/photo`, `DELETE /api/vehicles/{id}/photo`).
+   - Built frontend Garage dashboard (`GaragePage.tsx`), Vehicle cards (`VehicleCard.tsx`), Vehicle creation/edit modal (`VehicleModal.tsx`), Quick odometer update modal (`QuickMileageModal.tsx`), and full car profile view (`VehicleDetailPage.tsx`).
+   - Integrated client-side in-browser image compression with `browser-image-compression` (~8 MB down to ~200 KB) before upload.
+   - Enhanced zero-dependency client-side router (`Router.tsx`) with route parameter pattern matching (`/vehicles/:id`) and `useParams()`.
+   - Dedicated subsystem specifications: [docs/features/mileage-engine.md](features/mileage-engine.md), [docs/features/media-upload.md](features/media-upload.md), [docs/api-reference.md](api-reference.md), and [docs/database.md](database.md).
 4. **Step 4 – Service Records (Master-Detail):** Dynamic line-item entry form, cost calculation, service category filtering, and odometer auto-advance logic.
 5. **Step 5 – File Attachments & Gallery:** Multi-file upload handlers, local volume persistence via `FileStorageService`, and timeline attachment previews.
 6. **Step 6 – Reminders, Gauges, & Analytics:** Dynamic interval calculation engines, SVG progress gauges (Oil Life, STK inspection), and Recharts expense visualizers.
