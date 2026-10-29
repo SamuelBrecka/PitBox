@@ -11,7 +11,7 @@ export default {
           steel: '#3368A0',       // Deep Steel Blue (Primary / Nav)
           glacier: '#66A3BF',     // Glacier Sky Blue (Secondary / Gauges)
           seafoam: '#C8DFDB',     // Soft Seafoam Mint (Highlight / Soft Panels)
-          cream: '#F2EFE7',       // Warm Cream (Canvas / Background)
+          cream: '#F7F6F2',       // Light Alabaster Cream (Minimalist Canvas)
           dark: '#1C2E42',        // Deep Slate Dark
           card: '#FFFFFF',
         },
