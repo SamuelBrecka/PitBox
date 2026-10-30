@@ -43,3 +43,14 @@ All tables use UUID v4 primary keys (`gen_random_uuid()`), cascading foreign key
 
 ## 3. Flyway Migrations History
 - `V1__initial_schema.sql`: Initial tables creation (`users`, `vehicles`, `mileage_logs`, `service_records`, `service_items`, `attachments`, `reminders`).
+- `V2__seed_default_users.sql`: Seed default user (`user@pitbox.io`, `ROLE_USER`) and admin user (`admin@pitbox.io`, `ROLE_ADMIN`) with BCrypt-hashed passwords.
+
+---
+
+## 4. Default Seeded Users
+On database build or rebuild, the following accounts are automatically seeded:
+
+| Account | Email | Password | Role | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| **Default User** | `user@pitbox.io` | `password123` | `ROLE_USER` | Standard vehicle owner tenant account |
+| **Admin User** | `admin@pitbox.io` | `admin123` | `ROLE_ADMIN` | Reserved administrative user account |
