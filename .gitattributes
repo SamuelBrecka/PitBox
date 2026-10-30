@@ -1,0 +1,11 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Enforce LF for shell scripts and Maven wrapper
+*.sh text eol=lf
+mvnw text eol=lf
+backend/mvnw text eol=lf
+
+# Enforce CRLF for Windows scripts
+*.cmd text eol=crlf
+*.bat text eol=crlf

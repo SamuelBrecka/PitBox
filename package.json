@@ -1,0 +1,17 @@
+{
+  "name": "pitbox-root",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PitBox - Digital service book for vehicle owners",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "lint": "npm --prefix frontend run lint",
+    "test": "npm --prefix frontend test",
+    "backend:dev": "mvnw spring-boot:run -Dspring-boot.run.profiles=dev",
+    "backend:test": "mvnw test",
+    "backend:build": "mvnw package -DskipTests",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down"
+  }
+}

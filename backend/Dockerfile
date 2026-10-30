@@ -4,9 +4,9 @@ WORKDIR /workspace
 COPY pom.xml .
 COPY .mvn .mvn
 COPY mvnw .
-RUN chmod +x mvnw && ./mvnw dependency:go-offline -B || true
+RUN sed -i 's/\r$//' mvnw && chmod +x mvnw && ./mvnw dependency:go-offline -B || true
 COPY src src
-RUN ./mvnw clean package -DskipTests
+RUN sed -i 's/\r$//' mvnw && ./mvnw clean package -DskipTests
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
