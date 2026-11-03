@@ -10,5 +10,5 @@ import java.util.UUID;
 @Repository
 public interface MileageLogRepository extends JpaRepository<MileageLog, UUID> {
 
-    List<MileageLog> findByVehicleIdOrderByRecordedAtDescMileageDesc(UUID vehicleId);
+    List<MileageLog> findByVehicleIdOrderByMileageDescRecordedAtDesc(UUID vehicleId);
 }

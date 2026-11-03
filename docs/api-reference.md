@@ -114,3 +114,61 @@ All requests requiring authentication must include the HTTP header:
 - **Method & Path:** `GET /api/vehicles/{id}/mileage-logs`
 - **Security:** Bearer Token required. Must belong to authenticated user.
 - **Response:** `200 OK` (List of `MileageLogResponse` objects).
+
+---
+
+## 3. Service Record Endpoints (`/api/vehicles/{vehicleId}/service-records`)
+
+### 3.1 List Service Records
+- **Method & Path:** `GET /api/vehicles/{vehicleId}/service-records`
+- **Query Params:** `category` (optional: `MAINTENANCE`, `REPAIR`, `INSPECTION`, `OTHER`)
+- **Security:** Bearer Token required. Vehicle must belong to authenticated user.
+- **Response:** `200 OK` (List of `ServiceRecordResponse` sorted by `serviceDate DESC, createdAt DESC`).
+
+### 3.2 Get Service Record by ID
+- **Method & Path:** `GET /api/vehicles/{vehicleId}/service-records/{recordId}`
+- **Security:** Bearer Token required.
+- **Response:** `200 OK` (`ServiceRecordResponse`).
+
+### 3.3 Create Service Record
+- **Method & Path:** `POST /api/vehicles/{vehicleId}/service-records`
+- **Security:** Bearer Token required.
+- **Request Body:**
+```json
+{
+  "serviceDate": "2026-10-20",
+  "mileageAtService": 152400,
+  "category": "MAINTENANCE",
+  "workshopName": "PitStop Auto",
+  "notes": "Annual oil and filter service",
+  "items": [
+    {
+      "name": "Engine Oil 5W-30 (5L)",
+      "itemType": "FLUID",
+      "quantity": 1,
+      "unitPrice": 45.50
+    },
+    {
+      "name": "Mechanic Labor",
+      "itemType": "LABOR",
+      "quantity": 2,
+      "unitPrice": 30.00
+    }
+  ]
+}
+```
+- **Domain Rules:**
+  - Server calculates each item's `totalPrice = quantity * unitPrice` and record's `totalCost`.
+  - If `mileageAtService > vehicle.currentMileage`, `vehicle.currentMileage` is automatically advanced and an audit entry (`source: "SERVICE_RECORD"`) is appended to `mileage_logs`.
+- **Response:** `201 Created` (`ServiceRecordResponse`).
+
+### 3.4 Update Service Record
+- **Method & Path:** `PUT /api/vehicles/{vehicleId}/service-records/{recordId}`
+- **Security:** Bearer Token required.
+- **Request Body:** Same as Create (`CreateServiceRecordRequest`).
+- **Response:** `200 OK` (`ServiceRecordResponse`).
+
+### 3.5 Delete Service Record
+- **Method & Path:** `DELETE /api/vehicles/{vehicleId}/service-records/{recordId}`
+- **Security:** Bearer Token required.
+- **Response:** `204 No Content`.

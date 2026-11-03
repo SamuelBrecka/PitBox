@@ -4,7 +4,7 @@
 PitBox uses **PostgreSQL 16** with forward-only **Flyway migrations**.
 All tables use UUID v4 primary keys (`gen_random_uuid()`), cascading foreign keys, and explicit foreign key indexes.
 
-## 2. Table Definitions (Vehicles & Mileage Logs)
+## 2. Table Definitions (Vehicles, Mileage Logs & Service Records)
 
 ### `vehicles`
 | Column | Type | Constraints | Description |
@@ -38,6 +38,40 @@ All tables use UUID v4 primary keys (`gen_random_uuid()`), cascading foreign key
 
 **Indexes:**
 - `idx_mileage_logs_vehicle_id` ON `mileage_logs(vehicle_id)`
+
+---
+
+### `service_records`
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `UUID` | `PRIMARY KEY DEFAULT gen_random_uuid()` | Unique service record identifier |
+| `vehicle_id` | `UUID` | `NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE` | Associated vehicle |
+| `service_date` | `DATE` | `NOT NULL` | Date the service was performed |
+| `mileage_at_service` | `INT` | `NOT NULL` | Odometer reading at service |
+| `category` | `VARCHAR(50)` | `NOT NULL` | `MAINTENANCE`, `REPAIR`, `INSPECTION`, `OTHER` |
+| `workshop_name` | `VARCHAR(255)` | `NULL` | Workshop name or DIY |
+| `total_cost` | `DECIMAL(10, 2)` | `NOT NULL DEFAULT 0.00` | Sum of child line item totals |
+| `notes` | `TEXT` | `NULL` | Technician or owner notes |
+| `created_at` | `TIMESTAMP WITH TIME ZONE` | `NOT NULL DEFAULT CURRENT_TIMESTAMP` | Creation timestamp |
+
+**Indexes:**
+- `idx_service_records_vehicle_id` ON `service_records(vehicle_id)`
+
+---
+
+### `service_items`
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `UUID` | `PRIMARY KEY DEFAULT gen_random_uuid()` | Unique line item identifier |
+| `service_record_id` | `UUID` | `NOT NULL REFERENCES service_records(id) ON DELETE CASCADE` | Parent service record |
+| `name` | `VARCHAR(255)` | `NOT NULL` | Part, fluid, or labor description |
+| `item_type` | `VARCHAR(50)` | `NOT NULL` | `PART`, `LABOR`, `FLUID` |
+| `quantity` | `INT` | `NOT NULL DEFAULT 1` | Item quantity |
+| `unit_price` | `DECIMAL(10, 2)` | `NOT NULL DEFAULT 0.00` | Price per unit |
+| `total_price` | `DECIMAL(10, 2)` | `NOT NULL DEFAULT 0.00` | Calculated `quantity * unit_price` |
+
+**Indexes:**
+- `idx_service_items_record_id` ON `service_items(service_record_id)`
 
 ---
 

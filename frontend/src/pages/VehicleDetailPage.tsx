@@ -16,13 +16,51 @@ import {
   Bell,
   PieChart,
   ShieldCheck,
+  Plus,
+  Wrench,
+  Building2,
 } from 'lucide-react';
 import { useParams, Link, useNavigate } from '../router/Router';
 import { vehicleApi } from '../api/vehicleApi';
+import { serviceRecordApi } from '../api/serviceRecordApi';
 import { MileageLog, Vehicle } from '../types/vehicle';
+import { ServiceCategory, ServiceRecord } from '../types/serviceRecord';
 import { compressVehicleImage } from '../utils/compression';
 import { QuickMileageModal } from '../components/QuickMileageModal';
 import { VehicleModal } from '../components/VehicleModal';
+import { ServiceRecordModal } from '../components/ServiceRecordModal';
+
+const CATEGORY_BADGES: Record<ServiceCategory, { label: string; classes: string }> = {
+  MAINTENANCE: {
+    label: 'Bežná údržba',
+    classes: 'bg-pitbox-seafoam/60 text-pitbox-steel border-pitbox-seafoam',
+  },
+  REPAIR: {
+    label: 'Oprava',
+    classes: 'bg-amber-50 text-amber-800 border-amber-200',
+  },
+  INSPECTION: {
+    label: 'Kontrola (STK / EK)',
+    classes: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+  },
+  OTHER: {
+    label: 'Iné / Úpravy',
+    classes: 'bg-slate-100 text-slate-700 border-slate-200',
+  },
+};
+
+const FUEL_LABELS: Record<string, string> = {
+  PETROL: 'Benzín',
+  DIESEL: 'Nafta',
+  HYBRID: 'Hybrid',
+  EV: 'Elektro',
+};
+
+const ITEM_TYPE_LABELS: Record<string, string> = {
+  PART: 'DIEL',
+  FLUID: 'KVAPALINA',
+  LABOR: 'PRÁCA',
+};
 
 export const VehicleDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -30,15 +68,19 @@ export const VehicleDetailPage: React.FC = () => {
 
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [mileageLogs, setMileageLogs] = useState<MileageLog[]>([]);
+  const [serviceRecords, setServiceRecords] = useState<ServiceRecord[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Active tab
-  const [activeTab, setActiveTab] = useState<'mileage_logs' | 'service_history' | 'reminders' | 'analytics'>('mileage_logs');
+  // Active tab (default to service_history as primary logbook view)
+  const [activeTab, setActiveTab] = useState<'service_history' | 'mileage_logs' | 'reminders' | 'analytics'>('service_history');
 
   // Modals & upload
   const [isQuickMileageOpen, setIsQuickMileageOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
+  const [editingServiceRecord, setEditingServiceRecord] = useState<ServiceRecord | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -46,14 +88,16 @@ export const VehicleDetailPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const [vData, logsData] = await Promise.all([
+      const [vData, logsData, recordsData] = await Promise.all([
         vehicleApi.getVehicle(id),
         vehicleApi.getMileageLogs(id),
+        serviceRecordApi.getServiceRecords(id),
       ]);
       setVehicle(vData);
       setMileageLogs(logsData);
+      setServiceRecords(recordsData);
     } catch {
-      setError('Vehicle not found or failed to load data.');
+      setError('Vozidlo sa nenašlo alebo sa nepodarilo načítať údaje.');
     } finally {
       setLoading(false);
     }
@@ -62,6 +106,18 @@ export const VehicleDetailPage: React.FC = () => {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const refreshVehicleAndLogs = useCallback(async () => {
+    if (!id) return;
+    const [vData, logsData, recordsData] = await Promise.all([
+      vehicleApi.getVehicle(id),
+      vehicleApi.getMileageLogs(id),
+      serviceRecordApi.getServiceRecords(id),
+    ]);
+    setVehicle(vData);
+    setMileageLogs(logsData);
+    setServiceRecords(recordsData);
+  }, [id]);
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -73,7 +129,7 @@ export const VehicleDetailPage: React.FC = () => {
       const updated = await vehicleApi.uploadPhoto(vehicle.id, compressed.file);
       setVehicle(updated);
     } catch {
-      alert('Failed to upload compressed vehicle photo.');
+      alert('Nepodarilo sa nahrať skomprimovanú fotografiu vozidla.');
     } finally {
       setUploadingPhoto(false);
     }
@@ -81,31 +137,50 @@ export const VehicleDetailPage: React.FC = () => {
 
   const handleDelete = async () => {
     if (!vehicle) return;
-    const ok = window.confirm(`Delete ${vehicle.manufacturer} ${vehicle.model}? This cannot be undone.`);
+    const ok = window.confirm(`Odstrániť vozidlo ${vehicle.manufacturer} ${vehicle.model}? Túto akciu nie je možné vrátiť späť.`);
     if (!ok) return;
 
     try {
       await vehicleApi.deleteVehicle(vehicle.id);
       navigate('/garage', true);
     } catch {
-      alert('Failed to delete vehicle.');
+      alert('Nepodarilo sa odstrániť vozidlo.');
     }
   };
 
   const handleMileageUpdated = (updated: Vehicle) => {
     setVehicle(updated);
-    // Reload logs
     if (id) {
       vehicleApi.getMileageLogs(id).then(setMileageLogs);
     }
   };
+
+  const handleDeleteServiceRecord = async (record: ServiceRecord) => {
+    if (!vehicle) return;
+    const ok = window.confirm(`Odstrániť servisný záznam zo dňa ${record.serviceDate}?`);
+    if (!ok) return;
+
+    try {
+      await serviceRecordApi.deleteServiceRecord(vehicle.id, record.id);
+      setServiceRecords((prev) => prev.filter((r) => r.id !== record.id));
+    } catch {
+      alert('Nepodarilo sa odstrániť servisný záznam.');
+    }
+  };
+
+  const filteredServiceRecords =
+    selectedCategory === 'ALL'
+      ? serviceRecords
+      : serviceRecords.filter((r) => r.category === selectedCategory);
+
+  const totalServiceSpend = filteredServiceRecords.reduce((acc, r) => acc + Number(r.totalCost || 0), 0);
 
   if (loading) {
     return (
       <div className="flex-1 max-w-7xl mx-auto px-4 py-12 w-full flex items-center justify-center">
         <div className="flex flex-col items-center space-y-3 text-slate-500">
           <Car className="w-10 h-10 text-pitbox-glacier animate-bounce" />
-          <p className="text-sm font-semibold">Loading vehicle profile...</p>
+          <p className="text-sm font-semibold">Načítava sa profil vozidla...</p>
         </div>
       </div>
     );
@@ -116,15 +191,15 @@ export const VehicleDetailPage: React.FC = () => {
       <div className="flex-1 max-w-xl mx-auto px-4 py-16 w-full text-center">
         <div className="bg-white p-8 rounded-2xl border border-rose-200 shadow-sm">
           <AlertCircle className="w-12 h-12 text-rose-500 mx-auto mb-3" />
-          <h2 className="text-xl font-bold text-pitbox-dark">Vehicle Profile Not Available</h2>
-          <p className="text-sm text-slate-600 mt-2">{error || 'Vehicle could not be located.'}</p>
+          <h2 className="text-xl font-bold text-pitbox-dark">Profil vozidla nie je k dispozícii</h2>
+          <p className="text-sm text-slate-600 mt-2">{error || 'Vozidlo sa nepodarilo nájsť.'}</p>
           <div className="mt-6">
             <Link
               to="/garage"
               className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold text-white bg-pitbox-steel hover:bg-pitbox-steel/90"
             >
               <ArrowLeft className="w-4 h-4 mr-1.5" />
-              Return to Garage
+              Späť do garáže
             </Link>
           </div>
         </div>
@@ -141,7 +216,7 @@ export const VehicleDetailPage: React.FC = () => {
           className="inline-flex items-center text-xs font-semibold text-pitbox-steel hover:text-pitbox-steel/80 transition"
         >
           <ArrowLeft className="w-4 h-4 mr-1" />
-          Back to Garage
+          Späť do garáže
         </Link>
       </div>
 
@@ -157,7 +232,7 @@ export const VehicleDetailPage: React.FC = () => {
           ) : (
             <div className="flex flex-col items-center justify-center text-slate-500">
               <Car className="w-24 h-24 stroke-1 text-pitbox-seafoam/40" />
-              <span className="text-sm font-medium mt-2 text-slate-400">No profile photo uploaded</span>
+              <span className="text-sm font-medium mt-2 text-slate-400">Profilová fotografia nebola nahraná</span>
             </div>
           )}
 
@@ -167,7 +242,7 @@ export const VehicleDetailPage: React.FC = () => {
           {/* Change photo button */}
           <label className="absolute top-4 right-4 inline-flex items-center px-3 py-1.5 rounded-xl bg-black/50 hover:bg-black/70 backdrop-blur-md text-white text-xs font-semibold cursor-pointer border border-white/20 transition shadow-sm">
             <Camera className="w-4 h-4 mr-1.5 text-pitbox-seafoam" />
-            <span>{uploadingPhoto ? 'Compressing & Uploading...' : 'Change Photo'}</span>
+            <span>{uploadingPhoto ? 'Kompresia a nahrávanie...' : 'Zmeniť fotku'}</span>
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp"
@@ -182,10 +257,10 @@ export const VehicleDetailPage: React.FC = () => {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="bg-pitbox-steel text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
-                  {vehicle.fuelType}
+                  {FUEL_LABELS[vehicle.fuelType] || vehicle.fuelType}
                 </span>
                 <span className="text-white/80 text-xs font-semibold">
-                  Year {vehicle.manufactureYear}
+                  Rok {vehicle.manufactureYear}
                 </span>
               </div>
               <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight drop-shadow-sm">
@@ -209,7 +284,7 @@ export const VehicleDetailPage: React.FC = () => {
         <div className="px-6 py-4 bg-pitbox-cream/40 border-t border-pitbox-seafoam/50 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center space-x-2">
             <Gauge className="w-5 h-5 text-pitbox-glacier" />
-            <span className="text-xs text-slate-600 font-medium uppercase tracking-wide">Current Odometer:</span>
+            <span className="text-xs text-slate-600 font-medium uppercase tracking-wide">Aktuálny stav tachometra:</span>
             <span className="text-lg font-extrabold text-pitbox-steel font-mono">
               {vehicle.currentMileage.toLocaleString()} km
             </span>
@@ -218,18 +293,29 @@ export const VehicleDetailPage: React.FC = () => {
               onClick={() => setIsQuickMileageOpen(true)}
               className="ml-2 inline-flex items-center px-2.5 py-1 text-xs font-bold text-white bg-pitbox-steel hover:bg-pitbox-steel/90 rounded-lg shadow-2xs transition"
             >
-              + Quick Update
+              + Rýchla úprava
             </button>
           </div>
 
           <div className="flex items-center space-x-2">
             <button
               type="button"
+              onClick={() => {
+                setEditingServiceRecord(null);
+                setIsServiceModalOpen(true);
+              }}
+              className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-pitbox-steel hover:bg-pitbox-steel/90 transition shadow-2xs"
+            >
+              <Plus className="w-3.5 h-3.5 mr-1" />
+              Zapísať servis
+            </button>
+            <button
+              type="button"
               onClick={() => setIsEditModalOpen(true)}
               className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold text-pitbox-steel bg-white border border-pitbox-seafoam hover:bg-pitbox-seafoam/20 transition"
             >
               <Edit3 className="w-3.5 h-3.5 mr-1.5" />
-              Edit Specs
+              Upraviť údaje
             </button>
             <button
               type="button"
@@ -237,7 +323,7 @@ export const VehicleDetailPage: React.FC = () => {
               className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-600 bg-white border border-rose-200 hover:bg-rose-50 transition"
             >
               <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-              Delete Vehicle
+              Odstrániť vozidlo
             </button>
           </div>
         </div>
@@ -246,13 +332,13 @@ export const VehicleDetailPage: React.FC = () => {
       {/* Technical Specifications Grid */}
       <div className="mt-8 bg-white rounded-2xl border border-pitbox-seafoam/60 p-6 shadow-xs">
         <h3 className="text-sm font-bold text-pitbox-steel uppercase tracking-wider mb-4">
-          Vehicle Technical Specifications
+          Technické špecifikácie vozidla
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           <div className="bg-pitbox-cream/40 p-3 rounded-xl border border-pitbox-seafoam/40">
             <div className="flex items-center space-x-1.5 text-xs text-slate-500 mb-1">
               <Car className="w-3.5 h-3.5 text-pitbox-glacier" />
-              <span>Make & Model</span>
+              <span>Značka a model</span>
             </div>
             <p className="text-sm font-bold text-pitbox-dark truncate">
               {vehicle.manufacturer} {vehicle.model}
@@ -262,7 +348,7 @@ export const VehicleDetailPage: React.FC = () => {
           <div className="bg-pitbox-cream/40 p-3 rounded-xl border border-pitbox-seafoam/40">
             <div className="flex items-center space-x-1.5 text-xs text-slate-500 mb-1">
               <Calendar className="w-3.5 h-3.5 text-pitbox-glacier" />
-              <span>Year</span>
+              <span>Rok výroby</span>
             </div>
             <p className="text-sm font-bold text-pitbox-dark font-mono">
               {vehicle.manufactureYear}
@@ -272,30 +358,30 @@ export const VehicleDetailPage: React.FC = () => {
           <div className="bg-pitbox-cream/40 p-3 rounded-xl border border-pitbox-seafoam/40">
             <div className="flex items-center space-x-1.5 text-xs text-slate-500 mb-1">
               <Fuel className="w-3.5 h-3.5 text-pitbox-glacier" />
-              <span>Fuel Type</span>
+              <span>Druh paliva</span>
             </div>
             <p className="text-sm font-bold text-pitbox-dark uppercase">
-              {vehicle.fuelType}
+              {FUEL_LABELS[vehicle.fuelType] || vehicle.fuelType}
             </p>
           </div>
 
           <div className="bg-pitbox-cream/40 p-3 rounded-xl border border-pitbox-seafoam/40">
             <div className="flex items-center space-x-1.5 text-xs text-slate-500 mb-1">
               <Cpu className="w-3.5 h-3.5 text-pitbox-glacier" />
-              <span>Engine Info</span>
+              <span>Motorizácia</span>
             </div>
             <p className="text-sm font-bold text-pitbox-dark truncate">
-              {vehicle.engineInfo || 'N/A'}
+              {vehicle.engineInfo || 'Neuvedené'}
             </p>
           </div>
 
           <div className="bg-pitbox-cream/40 p-3 rounded-xl border border-pitbox-seafoam/40 sm:col-span-2">
             <div className="flex items-center space-x-1.5 text-xs text-slate-500 mb-1">
               <Hash className="w-3.5 h-3.5 text-pitbox-glacier" />
-              <span>VIN</span>
+              <span>VIN číslo</span>
             </div>
             <p className="text-sm font-bold text-pitbox-dark font-mono tracking-wider truncate">
-              {vehicle.vin || 'Not specified'}
+              {vehicle.vin || 'Neuvedené'}
             </p>
           </div>
         </div>
@@ -303,20 +389,7 @@ export const VehicleDetailPage: React.FC = () => {
 
       {/* Tabs */}
       <div className="mt-8">
-        <div className="border-b border-pitbox-seafoam/60 flex space-x-6">
-          <button
-            type="button"
-            onClick={() => setActiveTab('mileage_logs')}
-            className={`pb-3 text-sm font-bold flex items-center space-x-2 border-b-2 transition ${
-              activeTab === 'mileage_logs'
-                ? 'border-pitbox-steel text-pitbox-steel'
-                : 'border-transparent text-slate-500 hover:text-pitbox-steel'
-            }`}
-          >
-            <Clock className="w-4 h-4" />
-            <span>Odometer Audit Logs ({mileageLogs.length})</span>
-          </button>
-
+        <div className="border-b border-pitbox-seafoam/60 flex flex-wrap gap-6">
           <button
             type="button"
             onClick={() => setActiveTab('service_history')}
@@ -327,10 +400,20 @@ export const VehicleDetailPage: React.FC = () => {
             }`}
           >
             <FileText className="w-4 h-4" />
-            <span>Service History</span>
-            <span className="text-[10px] bg-pitbox-seafoam text-pitbox-steel px-1.5 py-0.5 rounded font-mono">
-              Step 4
-            </span>
+            <span>Servisná história ({serviceRecords.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('mileage_logs')}
+            className={`pb-3 text-sm font-bold flex items-center space-x-2 border-b-2 transition ${
+              activeTab === 'mileage_logs'
+                ? 'border-pitbox-steel text-pitbox-steel'
+                : 'border-transparent text-slate-500 hover:text-pitbox-steel'
+            }`}
+          >
+            <Clock className="w-4 h-4" />
+            <span>História tachometra ({mileageLogs.length})</span>
           </button>
 
           <button
@@ -343,9 +426,9 @@ export const VehicleDetailPage: React.FC = () => {
             }`}
           >
             <Bell className="w-4 h-4" />
-            <span>Reminders & Intervals</span>
+            <span>Pripomienky a intervaly</span>
             <span className="text-[10px] bg-pitbox-seafoam text-pitbox-steel px-1.5 py-0.5 rounded font-mono">
-              Step 6
+              Krok 6
             </span>
           </button>
 
@@ -359,22 +442,193 @@ export const VehicleDetailPage: React.FC = () => {
             }`}
           >
             <PieChart className="w-4 h-4" />
-            <span>Costs & Analytics</span>
+            <span>Náklady a štatistiky</span>
             <span className="text-[10px] bg-pitbox-seafoam text-pitbox-steel px-1.5 py-0.5 rounded font-mono">
-              Step 6
+              Krok 6
             </span>
           </button>
         </div>
 
         {/* Tab Content */}
         <div className="mt-6">
+          {activeTab === 'service_history' && (
+            <div className="space-y-6">
+              {/* Filter & Summary Bar */}
+              <div className="bg-white rounded-2xl border border-pitbox-seafoam/60 p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {(['ALL', 'MAINTENANCE', 'REPAIR', 'INSPECTION', 'OTHER'] as const).map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                        selectedCategory === cat
+                          ? 'bg-pitbox-steel text-white shadow-2xs'
+                          : 'bg-pitbox-cream/60 text-slate-600 hover:bg-pitbox-seafoam/30'
+                      }`}
+                    >
+                      {cat === 'ALL' ? 'Všetky záznamy' : CATEGORY_BADGES[cat].label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center justify-between sm:justify-end gap-4">
+                  <div className="text-right">
+                    <span className="text-[10px] uppercase tracking-wider text-slate-500 block font-semibold">
+                      Súčet filtrovaných
+                    </span>
+                    <span className="text-base font-extrabold text-pitbox-steel font-mono">
+                      €{totalServiceSpend.toFixed(2)}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingServiceRecord(null);
+                      setIsServiceModalOpen(true);
+                    }}
+                    className="inline-flex items-center px-3.5 py-2 text-xs font-bold text-white bg-pitbox-steel hover:bg-pitbox-steel/90 rounded-xl shadow-xs transition"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Nový servisný záznam
+                  </button>
+                </div>
+              </div>
+
+              {/* Timeline List */}
+              {filteredServiceRecords.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-dashed border-pitbox-seafoam/80 p-10 text-center">
+                  <Wrench className="w-10 h-10 text-pitbox-glacier mx-auto mb-2" />
+                  <h4 className="font-bold text-pitbox-dark">Žiadne servisné záznamy</h4>
+                  <p className="text-xs text-slate-600 mt-1 max-w-md mx-auto">
+                    Zaznamenajte prvú návštevu servisu, výmenu oleja alebo kontrolu STK s podrobným rozpisom dielov a práce.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingServiceRecord(null);
+                      setIsServiceModalOpen(true);
+                    }}
+                    className="mt-4 inline-flex items-center px-4 py-2 text-xs font-bold text-white bg-pitbox-steel hover:bg-pitbox-steel/90 rounded-xl shadow-xs transition"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Pridať prvý servisný záznam
+                  </button>
+                </div>
+              ) : (
+                <div className="relative pl-6 border-l-2 border-pitbox-seafoam space-y-6">
+                  {filteredServiceRecords.map((record) => {
+                    const badge = CATEGORY_BADGES[record.category] || CATEGORY_BADGES.OTHER;
+                    return (
+                      <div key={record.id} className="relative bg-white rounded-2xl border border-pitbox-seafoam/60 shadow-xs overflow-hidden">
+                        {/* Timeline Node Dot */}
+                        <div className="absolute -left-[31px] top-6 w-3.5 h-3.5 rounded-full bg-pitbox-steel border-2 border-white" />
+
+                        {/* Card Header */}
+                        <div className="px-6 py-4 bg-pitbox-cream/40 border-b border-pitbox-seafoam/40 flex flex-wrap items-center justify-between gap-3">
+                          <div className="flex flex-wrap items-center gap-2.5">
+                            <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${badge.classes}`}>
+                              {badge.label}
+                            </span>
+                            <span className="text-xs font-bold text-pitbox-dark font-mono flex items-center">
+                              <Calendar className="w-3.5 h-3.5 mr-1 text-pitbox-glacier" />
+                              {record.serviceDate}
+                            </span>
+                            <span className="text-xs font-extrabold text-pitbox-steel font-mono bg-white px-2 py-0.5 rounded border border-pitbox-seafoam/60">
+                              {record.mileageAtService.toLocaleString()} km
+                            </span>
+                            {record.workshopName && (
+                              <span className="text-xs text-slate-600 flex items-center">
+                                <Building2 className="w-3.5 h-3.5 mr-1 text-slate-400" />
+                                {record.workshopName}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center space-x-3">
+                            <span className="text-base font-extrabold text-pitbox-steel font-mono">
+                              €{Number(record.totalCost).toFixed(2)}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingServiceRecord(record);
+                                setIsServiceModalOpen(true);
+                              }}
+                              aria-label="Upraviť servisný záznam"
+                              className="p-1.5 text-slate-500 hover:text-pitbox-steel rounded-lg hover:bg-white transition"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteServiceRecord(record)}
+                              aria-label="Odstrániť servisný záznam"
+                              className="p-1.5 text-slate-500 hover:text-rose-600 rounded-lg hover:bg-white transition"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Line Items Table */}
+                        <div className="px-6 py-4">
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                              <thead>
+                                <tr className="border-b border-slate-100 text-[10px] font-bold uppercase text-slate-400 tracking-wider">
+                                  <th className="pb-2">Popis položky</th>
+                                  <th className="pb-2">Typ</th>
+                                  <th className="pb-2 text-center">Mn.</th>
+                                  <th className="pb-2 text-right">Jedn. cena</th>
+                                  <th className="pb-2 text-right">Spolu</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100 text-xs">
+                                {record.items.map((item, idx) => (
+                                  <tr key={item.id || idx}>
+                                    <td className="py-2 font-semibold text-pitbox-dark">{item.name}</td>
+                                    <td className="py-2">
+                                      <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono">
+                                        {ITEM_TYPE_LABELS[item.itemType] || item.itemType}
+                                      </span>
+                                    </td>
+                                    <td className="py-2 text-center font-mono text-slate-600">{item.quantity}</td>
+                                    <td className="py-2 text-right font-mono text-slate-600">
+                                      €{Number(item.unitPrice).toFixed(2)}
+                                    </td>
+                                    <td className="py-2 text-right font-mono font-bold text-pitbox-dark">
+                                      €{Number(item.totalPrice ?? item.quantity * item.unitPrice).toFixed(2)}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          {record.notes && (
+                            <div className="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-600">
+                              <span className="font-semibold text-pitbox-dark mr-1">Poznámky:</span>
+                              {record.notes}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           {activeTab === 'mileage_logs' && (
             <div className="bg-white rounded-2xl border border-pitbox-seafoam/60 overflow-hidden shadow-xs">
               <div className="px-6 py-4 border-b border-pitbox-seafoam/40 flex items-center justify-between">
                 <div>
-                  <h4 className="font-bold text-pitbox-dark text-sm">Odometer Audit Trail</h4>
+                  <h4 className="font-bold text-pitbox-dark text-sm">Auditná história tachometra</h4>
                   <p className="text-xs text-slate-500">
-                    Immutable history recorded on manual updates and service entries.
+                    Nemenná história zaznamenaná pri manuálnych úpravách a servisných záznamoch.
                   </p>
                 </div>
                 <button
@@ -382,13 +636,13 @@ export const VehicleDetailPage: React.FC = () => {
                   onClick={() => setIsQuickMileageOpen(true)}
                   className="px-3 py-1.5 text-xs font-semibold text-white bg-pitbox-steel hover:bg-pitbox-steel/90 rounded-lg shadow-2xs transition"
                 >
-                  Log Reading
+                  Zapísať stav
                 </button>
               </div>
 
               {mileageLogs.length === 0 ? (
                 <div className="p-8 text-center text-slate-500 text-sm">
-                  No odometer logs recorded yet.
+                  Zatiaľ neboli zaznamenané žiadne záznamy tachometra.
                 </div>
               ) : (
                 <div className="divide-y divide-slate-100">
@@ -403,7 +657,7 @@ export const VehicleDetailPage: React.FC = () => {
                             {log.mileage.toLocaleString()} km
                           </p>
                           <span className="text-[11px] text-slate-500">
-                            Recorded on {log.recordedAt}
+                            Zaznamenané dňa {log.recordedAt}
                           </span>
                         </div>
                       </div>
@@ -420,22 +674,12 @@ export const VehicleDetailPage: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'service_history' && (
-            <div className="bg-white rounded-2xl border border-dashed border-pitbox-seafoam/80 p-8 text-center">
-              <FileText className="w-10 h-10 text-pitbox-glacier mx-auto mb-2" />
-              <h4 className="font-bold text-pitbox-dark">Service History & Invoices</h4>
-              <p className="text-xs text-slate-600 mt-1 max-w-md mx-auto">
-                Step 4 will introduce line-item service entries (parts, labor, fluids), mechanic notes, and receipt attachments.
-              </p>
-            </div>
-          )}
-
           {activeTab === 'reminders' && (
             <div className="bg-white rounded-2xl border border-dashed border-pitbox-seafoam/80 p-8 text-center">
               <ShieldCheck className="w-10 h-10 text-pitbox-glacier mx-auto mb-2" />
-              <h4 className="font-bold text-pitbox-dark">Reminders & Visual Gauges</h4>
+              <h4 className="font-bold text-pitbox-dark">Pripomienky a vizuálne ukazovatele</h4>
               <p className="text-xs text-slate-600 mt-1 max-w-md mx-auto">
-                Step 6 will introduce Oil Life remaining gauges, inspection countdowns, and automated interval advancement.
+                Krok 6 prinesie ukazovatele zostávajúcej životnosti oleja, odpočítavanie do STK a automatické posúvanie intervalov.
               </p>
             </div>
           )}
@@ -443,9 +687,9 @@ export const VehicleDetailPage: React.FC = () => {
           {activeTab === 'analytics' && (
             <div className="bg-white rounded-2xl border border-dashed border-pitbox-seafoam/80 p-8 text-center">
               <PieChart className="w-10 h-10 text-pitbox-glacier mx-auto mb-2" />
-              <h4 className="font-bold text-pitbox-dark">Cost Statistics & TCO Analytics</h4>
+              <h4 className="font-bold text-pitbox-dark">Štatistiky nákladov a TCO analytika</h4>
               <p className="text-xs text-slate-600 mt-1 max-w-md mx-auto">
-                Step 6 will introduce monthly cost breakdown charts, cost-per-km metrics, and lifetime ownership expenditure tracking.
+                Krok 6 prinesie grafy mesačných nákladov, metriky nákladov na kilometer a sledovanie celkových výdavkov na vozidlo.
               </p>
             </div>
           )}
@@ -465,6 +709,20 @@ export const VehicleDetailPage: React.FC = () => {
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         onSuccess={(updated) => setVehicle(updated)}
+      />
+
+      <ServiceRecordModal
+        vehicleId={vehicle.id}
+        currentVehicleMileage={vehicle.currentMileage}
+        record={editingServiceRecord}
+        isOpen={isServiceModalOpen}
+        onClose={() => {
+          setIsServiceModalOpen(false);
+          setEditingServiceRecord(null);
+        }}
+        onSuccess={() => {
+          refreshVehicleAndLogs();
+        }}
       />
     </div>
   );

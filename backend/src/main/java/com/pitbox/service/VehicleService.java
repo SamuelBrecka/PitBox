@@ -150,7 +150,7 @@ public class VehicleService {
         // Enforce ownership
         findVehicleForUser(vehicleId, userId);
 
-        return mileageLogRepository.findByVehicleIdOrderByRecordedAtDescMileageDesc(vehicleId)
+        return mileageLogRepository.findByVehicleIdOrderByMileageDescRecordedAtDesc(vehicleId)
             .stream()
             .map(MileageLogResponse::fromEntity)
             .toList();

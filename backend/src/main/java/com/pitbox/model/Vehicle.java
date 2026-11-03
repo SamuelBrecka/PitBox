@@ -67,6 +67,9 @@ public class Vehicle {
     @OneToMany(mappedBy = "vehicle", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MileageLog> mileageLogs = new ArrayList<>();
 
+    @OneToMany(mappedBy = "vehicle", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ServiceRecord> serviceRecords = new ArrayList<>();
+
     public Vehicle() {
     }
 

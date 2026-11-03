@@ -289,7 +289,11 @@ System parameters are externalized in `.env` (template in [`.env.example`](file:
    - Integrated client-side in-browser image compression with `browser-image-compression` (~8 MB down to ~200 KB) before upload.
    - Enhanced zero-dependency client-side router (`Router.tsx`) with route parameter pattern matching (`/vehicles/:id`) and `useParams()`.
    - Dedicated subsystem specifications: [docs/features/mileage-engine.md](features/mileage-engine.md), [docs/features/media-upload.md](features/media-upload.md), [docs/api-reference.md](api-reference.md), and [docs/database.md](database.md).
-4. **Step 4 – Service Records (Master-Detail):** Dynamic line-item entry form, cost calculation, service category filtering, and odometer auto-advance logic.
+4. **Step 4 – Service Records (Master-Detail):** `[COMPLETED]`
+   - Implemented JPA entities [`ServiceRecord`](file:///C:/Users/brecka/source/repos/PitBox/backend/src/main/java/com/pitbox/model/ServiceRecord.java) and [`ServiceItem`](file:///C:/Users/brecka/source/repos/PitBox/backend/src/main/java/com/pitbox/model/ServiceItem.java), [`ServiceRecordRepository`](file:///C:/Users/brecka/source/repos/PitBox/backend/src/main/java/com/pitbox/repository/ServiceRecordRepository.java), [`ServiceRecordService`](file:///C:/Users/brecka/source/repos/PitBox/backend/src/main/java/com/pitbox/service/ServiceRecordService.java), and [`ServiceRecordController`](file:///C:/Users/brecka/source/repos/PitBox/backend/src/main/java/com/pitbox/controller/ServiceRecordController.java).
+   - Enforced server-side `BigDecimal` line-item total and grand total calculations, category filtering (`MAINTENANCE`, `REPAIR`, `INSPECTION`, `OTHER`), and automatic forward-only odometer synchronization (`source: "SERVICE_RECORD"`) while allowing historical service entries.
+   - Built frontend [`ServiceRecordModal.tsx`](file:///C:/Users/brecka/source/repos/PitBox/frontend/src/components/ServiceRecordModal.tsx) with dynamic row builder and integrated vertical timeline into [`VehicleDetailPage.tsx`](file:///C:/Users/brecka/source/repos/PitBox/frontend/src/pages/VehicleDetailPage.tsx).
+   - Dedicated subsystem specification: [docs/features/service-records.md](features/service-records.md).
 5. **Step 5 – File Attachments & Gallery:** Multi-file upload handlers, local volume persistence via `FileStorageService`, and timeline attachment previews.
 6. **Step 6 – Reminders, Gauges, & Analytics:** Dynamic interval calculation engines, SVG progress gauges (Oil Life, STK inspection), and Recharts expense visualizers.
 
