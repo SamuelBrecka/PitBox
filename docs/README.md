@@ -3,6 +3,7 @@
 Welcome to the PitBox technical documentation suite.
 
 ## System & Architecture
+- [Project Structure & File Map](project-structure.md): Canonical directory structure and component map for frontend and backend
 - [System Architecture](architecture.md): High-level system design, low-memory budget (< 400 MB), and Docker orchestration
 - [Build & Run Guide](run-and-build.md): Local development, compilation commands, and Docker execution
 - [Database & Migrations](database.md): PostgreSQL 16 schema, Flyway migrations, and relational constraints
@@ -12,6 +13,7 @@ Welcome to the PitBox technical documentation suite.
 ## Core Features
 - [UI/UX Minimalist Design System](features/ui-design-system.md): Light alabaster palette, Swiss-inspired minimal layout for Landing and Garage pages
 - [Mileage Engine](features/mileage-engine.md): Forward-only odometer updates and audit logging (`MILEAGE_LOGS`)
+- [Service Records (Master-Detail)](features/service-records.md): Itemized service history, cost calculation, category filtering, and odometer auto-advance
 - [Media & Storage](features/media-upload.md): Client-side image compression and `FileStorageService` abstraction
 - [Reminders & Service Intervals](features/reminders.md): Dynamic interval calculation and status tracking *(Planned)*
 - [TCO Statistics](features/tco-statistics.md): Cost analytics, ownership metrics, and Recharts integration *(Planned)*

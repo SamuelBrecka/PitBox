@@ -73,3 +73,8 @@ Whenever a new feature is added, modified, or refactored:
 
 4. **Completion Gate:**
 * A task cannot be marked as `DONE` in `docs/plans/task.md` without citing the corresponding documentation files created or updated in `docs/`.
+
+## 5. Grounding & File Navigation Invariant
+- **Strictly Zero Path Guessing:** Never hallucinate or assume file paths, page names, or component locations.
+- **Reference Order:** Before reading or modifying any file, consult [docs/project-structure.md](docs/project-structure.md) or run `git ls-files` to confirm its exact path.
+- **Structure Synchronization:** Whenever new pages, components, controllers, or services are created or moved, update [docs/project-structure.md](docs/project-structure.md) to keep the canonical map accurate.
