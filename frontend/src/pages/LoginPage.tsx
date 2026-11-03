@@ -23,7 +23,7 @@ export const LoginPage: React.FC = () => {
     setError(null);
 
     if (!email.trim() || !password) {
-      setError('Please fill in all fields.');
+      setError('Vyplňte prosím všetky polia.');
       return;
     }
 
@@ -33,7 +33,7 @@ export const LoginPage: React.FC = () => {
       navigate('/garage');
     } catch (err: unknown) {
       const axiosError = err as { response?: { data?: { error?: string } } };
-      setError(axiosError.response?.data?.error || 'Invalid email or password. Please try again.');
+      setError(axiosError.response?.data?.error || 'Nesprávny e-mail alebo heslo. Skúste to prosím znova.');
     } finally {
       setIsSubmitting(false);
     }
@@ -46,8 +46,8 @@ export const LoginPage: React.FC = () => {
           <div className="inline-flex p-3 rounded-xl bg-pitbox-steel/10 text-pitbox-steel mb-3">
             <LogIn className="w-6 h-6" />
           </div>
-          <h2 className="text-2xl font-bold text-pitbox-dark">Sign In to PitBox</h2>
-          <p className="text-sm text-slate-600 mt-1">Access your garage and vehicle records</p>
+          <h2 className="text-2xl font-bold text-pitbox-dark">Prihlásenie do PitBoxu</h2>
+          <p className="text-sm text-slate-600 mt-1">Prístup k vašej garáži a záznamom o vozidlách</p>
         </div>
 
         {error && (
@@ -63,7 +63,7 @@ export const LoginPage: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="login-email">
-              Email Address
+              E-mailová adresa
             </label>
             <input
               id="login-email"
@@ -71,14 +71,14 @@ export const LoginPage: React.FC = () => {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="mechanic@example.com"
+              placeholder="mechanik@priklad.sk"
               className="w-full px-3 py-2 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-pitbox-steel focus:border-pitbox-steel text-sm text-pitbox-dark"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="login-password">
-              Password
+              Heslo
             </label>
             <input
               id="login-password"
@@ -96,14 +96,14 @@ export const LoginPage: React.FC = () => {
             disabled={isSubmitting}
             className="w-full py-2.5 px-4 bg-pitbox-steel hover:bg-pitbox-steel/90 text-white font-medium rounded-lg shadow-sm transition disabled:opacity-60 flex items-center justify-center text-sm"
           >
-            {isSubmitting ? 'Signing in...' : 'Sign In'}
+            {isSubmitting ? 'Prihlasovanie...' : 'Prihlásiť sa'}
           </button>
         </form>
 
         <div className="mt-6 text-center text-xs text-slate-500">
-          Don&apos;t have an account?{' '}
+          Ešte nemáte účet?{' '}
           <Link to="/register" className="font-semibold text-pitbox-steel hover:underline">
-            Create an account
+            Vytvoriť účet
           </Link>
         </div>
       </div>

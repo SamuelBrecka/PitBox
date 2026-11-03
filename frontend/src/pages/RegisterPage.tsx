@@ -25,17 +25,20 @@ export const RegisterPage: React.FC = () => {
     setError(null);
 
     if (!fullName.trim() || !email.trim() || !password) {
-      setError('Please fill in all required fields.');
+      setError('Vyplňte prosím všetky povinné polia.');
       return;
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters long.');
+      setError('Heslo musí mať aspoň 6 znakov.');
+    }
+
+    if (password.length < 6) {
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError('Heslá sa nezhodujú.');
       return;
     }
 
@@ -49,7 +52,7 @@ export const RegisterPage: React.FC = () => {
       navigate('/garage');
     } catch (err: unknown) {
       const axiosError = err as { response?: { data?: { error?: string } } };
-      setError(axiosError.response?.data?.error || 'Registration failed. Please try again.');
+      setError(axiosError.response?.data?.error || 'Registrácia zlyhala. Skúste to prosím znova.');
     } finally {
       setIsSubmitting(false);
     }
@@ -62,8 +65,8 @@ export const RegisterPage: React.FC = () => {
           <div className="inline-flex p-3 rounded-xl bg-pitbox-glacier/20 text-pitbox-steel mb-3">
             <UserPlus className="w-6 h-6" />
           </div>
-          <h2 className="text-2xl font-bold text-pitbox-dark">Create Your PitBox Account</h2>
-          <p className="text-sm text-slate-600 mt-1">Start tracking your vehicle maintenance today</p>
+          <h2 className="text-2xl font-bold text-pitbox-dark">Vytvorte si účet PitBox</h2>
+          <p className="text-sm text-slate-600 mt-1">Začnite sledovať údržbu svojho vozidla ešte dnes</p>
         </div>
 
         {error && (
@@ -79,7 +82,7 @@ export const RegisterPage: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="register-name">
-              Full Name
+              Celé meno
             </label>
             <input
               id="register-name"
@@ -87,14 +90,14 @@ export const RegisterPage: React.FC = () => {
               required
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              placeholder="Alex Parker"
+              placeholder="Ján Novák"
               className="w-full px-3 py-2 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-pitbox-steel focus:border-pitbox-steel text-sm text-pitbox-dark"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="register-email">
-              Email Address
+              E-mailová adresa
             </label>
             <input
               id="register-email"
@@ -102,14 +105,14 @@ export const RegisterPage: React.FC = () => {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="alex@example.com"
+              placeholder="jan.novak@priklad.sk"
               className="w-full px-3 py-2 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-pitbox-steel focus:border-pitbox-steel text-sm text-pitbox-dark"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="register-password">
-              Password (min. 6 characters)
+              Heslo (min. 6 znakov)
             </label>
             <input
               id="register-password"
@@ -124,7 +127,7 @@ export const RegisterPage: React.FC = () => {
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="register-confirm-password">
-              Confirm Password
+              Potvrdiť heslo
             </label>
             <input
               id="register-confirm-password"
@@ -142,14 +145,14 @@ export const RegisterPage: React.FC = () => {
             disabled={isSubmitting}
             className="w-full py-2.5 px-4 bg-pitbox-steel hover:bg-pitbox-steel/90 text-white font-medium rounded-lg shadow-sm transition disabled:opacity-60 flex items-center justify-center text-sm"
           >
-            {isSubmitting ? 'Creating Account...' : 'Create Account'}
+            {isSubmitting ? 'Vytváranie účtu...' : 'Vytvoriť účet'}
           </button>
         </form>
 
         <div className="mt-6 text-center text-xs text-slate-500">
-          Already have an account?{' '}
+          Už máte účet?{' '}
           <Link to="/login" className="font-semibold text-pitbox-steel hover:underline">
-            Sign in
+            Prihlásiť sa
           </Link>
         </div>
       </div>

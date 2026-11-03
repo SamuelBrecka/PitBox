@@ -32,7 +32,7 @@ export const Navbar: React.FC = () => {
                 className="flex items-center space-x-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-full hover:bg-slate-100 transition-colors duration-200 cursor-pointer"
               >
                 <LayoutDashboard className="w-4 h-4 text-pitbox-steel" />
-                <span>My Garage</span>
+                <span>Moja garáž</span>
               </Link>
               <div className="hidden sm:flex items-center space-x-1.5 text-xs text-slate-600 bg-slate-100 px-3 py-1.5 rounded-full">
                 <UserIcon className="w-3.5 h-3.5 text-slate-400" />
@@ -42,10 +42,10 @@ export const Navbar: React.FC = () => {
                 type="button"
                 onClick={handleLogout}
                 className="flex items-center space-x-1 text-sm font-medium text-slate-500 hover:text-slate-900 px-3 py-1.5 rounded-full hover:bg-slate-100 transition-colors duration-200 cursor-pointer"
-                title="Sign Out"
+                title="Odhlásiť sa"
               >
                 <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">Sign Out</span>
+                <span className="hidden sm:inline">Odhlásiť sa</span>
               </button>
             </>
           ) : (
@@ -54,13 +54,13 @@ export const Navbar: React.FC = () => {
                 to="/login"
                 className="text-sm font-medium text-slate-600 hover:text-slate-900 px-3.5 py-1.5 rounded-full hover:bg-slate-100 transition-colors duration-200 cursor-pointer"
               >
-                Sign In
+                Prihlásiť sa
               </Link>
               <Link
                 to="/register"
                 className="text-sm font-medium bg-pitbox-steel text-white px-4 py-1.5 rounded-full hover:bg-pitbox-steel/90 transition-colors duration-200 cursor-pointer"
               >
-                Create Account
+                Vytvoriť účet
               </Link>
             </>
           )}

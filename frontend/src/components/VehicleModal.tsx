@@ -12,10 +12,10 @@ interface VehicleModalProps {
 }
 
 const FUEL_TYPES = [
-  { value: 'PETROL', label: 'Petrol (Gasoline)' },
-  { value: 'DIESEL', label: 'Diesel' },
+  { value: 'PETROL', label: 'Benzín' },
+  { value: 'DIESEL', label: 'Nafta' },
   { value: 'HYBRID', label: 'Hybrid / PHEV' },
-  { value: 'EV', label: 'Electric (EV)' },
+  { value: 'EV', label: 'Elektromobil (EV)' },
 ];
 
 export const VehicleModal: React.FC<VehicleModalProps> = ({
@@ -54,7 +54,7 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
       const result = await compressVehicleImage(file);
       setCompressedResult(result);
     } catch {
-      setError('Failed to process image.');
+      setError('Nepodarilo sa spracovať obrázok.');
     } finally {
       setCompressing(false);
     }
@@ -63,13 +63,13 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!manufacturer.trim() || !model.trim() || !licensePlate.trim()) {
-      setError('Please fill in all required fields (Make, Model, License Plate).');
+      setError('Vyplňte prosím všetky povinné polia (Značka, Model, EČV / ŠPZ).');
       return;
     }
 
     const yearNum = Number(manufactureYear);
     if (isNaN(yearNum) || yearNum < 1900 || yearNum > 2100) {
-      setError('Manufacture year must be between 1900 and 2100.');
+      setError('Rok výroby musí byť medzi 1900 a 2100.');
       return;
     }
 
@@ -114,7 +114,7 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
       onClose();
     } catch (err: unknown) {
       const errorMessage = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
-        || 'An error occurred while saving vehicle.';
+        || 'Pri ukladaní vozidla nastala chyba.';
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -129,7 +129,7 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
           <div className="flex items-center space-x-2">
             <Car className="w-5 h-5 text-pitbox-seafoam" />
             <h3 className="font-bold text-lg">
-              {isEditing ? 'Edit Vehicle Profile' : 'Add New Vehicle'}
+              {isEditing ? 'Upraviť profil vozidla' : 'Pridať nové vozidlo'}
             </h3>
           </div>
           <button
@@ -153,12 +153,12 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
           {/* Photo Upload & In-Browser Compression */}
           <div className="bg-pitbox-cream/40 p-3.5 rounded-xl border border-pitbox-seafoam/60">
             <span className="text-xs font-semibold text-pitbox-dark uppercase tracking-wider block mb-2">
-              Vehicle Photo (In-Browser Auto Compression)
+              Fotografia vozidla (automatická kompresia v prehliadači)
             </span>
             <div className="flex items-center gap-4">
               <div className="w-20 h-20 rounded-xl bg-pitbox-cream border border-pitbox-seafoam flex items-center justify-center overflow-hidden shrink-0">
                 {compressedResult ? (
-                  <img src={compressedResult.previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                  <img src={compressedResult.previewUrl} alt="Náhľad" className="w-full h-full object-cover" />
                 ) : vehicle?.photoPath ? (
                   <img src={vehicle.photoPath} alt={vehicle.model} className="w-full h-full object-cover" />
                 ) : (
@@ -169,7 +169,7 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
               <div className="flex-1">
                 <label className="inline-flex items-center px-3 py-1.5 text-xs font-semibold text-pitbox-steel bg-white hover:bg-pitbox-seafoam/20 border border-pitbox-seafoam rounded-lg cursor-pointer transition shadow-xs">
                   <Upload className="w-3.5 h-3.5 mr-1.5" />
-                  {compressing ? 'Compressing...' : 'Choose Photo'}
+                  {compressing ? 'Kompresia...' : 'Vybrať fotku'}
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
@@ -185,12 +185,12 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
                     <span>
                       {compressedResult.originalSizeKb} KB &rarr;{' '}
                       <strong className="text-emerald-700 font-bold">{compressedResult.compressedSizeKb} KB</strong>{' '}
-                      ({Math.round((1 - compressedResult.compressedSizeKb / compressedResult.originalSizeKb) * 100)}% smaller)
+                      (o {Math.round((1 - compressedResult.compressedSizeKb / compressedResult.originalSizeKb) * 100)} % menšie)
                     </span>
                   </div>
                 )}
                 <p className="text-[11px] text-slate-500 mt-1">
-                  Photos are compressed down to ~200 KB in your browser before upload.
+                  Fotografie sa pred odoslaním skomprimujú v prehliadači na približne 200 KB.
                 </p>
               </div>
             </div>
@@ -198,13 +198,13 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-pitbox-dark mb-1">Make / Manufacturer *</label>
+              <label className="block text-xs font-semibold text-pitbox-dark mb-1">Značka / Výrobca *</label>
               <input
                 type="text"
                 required
                 value={manufacturer}
                 onChange={(e) => setManufacturer(e.target.value)}
-                placeholder="e.g. Skoda, BMW, Audi"
+                placeholder="napr. Škoda, BMW, Audi"
                 className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-pitbox-steel/20 focus:border-pitbox-steel text-sm"
               />
             </div>
@@ -216,13 +216,13 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
                 required
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
-                placeholder="e.g. Octavia, 320d, Golf"
+                placeholder="napr. Octavia, 320d, Golf"
                 className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-pitbox-steel/20 focus:border-pitbox-steel text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-pitbox-dark mb-1">Manufacture Year *</label>
+              <label className="block text-xs font-semibold text-pitbox-dark mb-1">Rok výroby *</label>
               <input
                 type="number"
                 required
@@ -235,19 +235,19 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-pitbox-dark mb-1">License Plate *</label>
+              <label className="block text-xs font-semibold text-pitbox-dark mb-1">EČV / ŠPZ *</label>
               <input
                 type="text"
                 required
                 value={licensePlate}
                 onChange={(e) => setLicensePlate(e.target.value.toUpperCase())}
-                placeholder="e.g. BA-123XY"
+                placeholder="napr. BA-123XY"
                 className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-pitbox-steel/20 focus:border-pitbox-steel text-sm font-mono uppercase font-bold"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-pitbox-dark mb-1">Fuel Type *</label>
+              <label className="block text-xs font-semibold text-pitbox-dark mb-1">Druh paliva *</label>
               <select
                 value={fuelType}
                 onChange={(e) => setFuelType(e.target.value)}
@@ -263,38 +263,38 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
 
             {!isEditing && (
               <div>
-                <label className="block text-xs font-semibold text-pitbox-dark mb-1">Current Mileage (km) *</label>
+                <label className="block text-xs font-semibold text-pitbox-dark mb-1">Aktuálny stav tachometra (km) *</label>
                 <input
                   type="number"
                   min={0}
                   required
                   value={currentMileage}
                   onChange={(e) => setCurrentMileage(e.target.value)}
-                  placeholder="e.g. 145000"
+                  placeholder="napr. 145000"
                   className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-pitbox-steel/20 focus:border-pitbox-steel text-sm font-mono"
                 />
               </div>
             )}
 
             <div>
-              <label className="block text-xs font-semibold text-pitbox-dark mb-1">Engine Information (Optional)</label>
+              <label className="block text-xs font-semibold text-pitbox-dark mb-1">Motorizácia (voliteľné)</label>
               <input
                 type="text"
                 value={engineInfo}
                 onChange={(e) => setEngineInfo(e.target.value)}
-                placeholder="e.g. 2.0 TDI 110 kW"
+                placeholder="napr. 2.0 TDI 110 kW"
                 className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-pitbox-steel/20 focus:border-pitbox-steel text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-pitbox-dark mb-1">VIN (Optional)</label>
+              <label className="block text-xs font-semibold text-pitbox-dark mb-1">VIN číslo (voliteľné)</label>
               <input
                 type="text"
                 maxLength={17}
                 value={vin}
                 onChange={(e) => setVin(e.target.value.toUpperCase())}
-                placeholder="17-character VIN"
+                placeholder="17-miestny kód VIN"
                 className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-pitbox-steel/20 focus:border-pitbox-steel text-sm font-mono uppercase"
               />
             </div>
@@ -307,14 +307,14 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
               disabled={loading || compressing}
               className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition"
             >
-              Cancel
+              Zrušiť
             </button>
             <button
               type="submit"
               disabled={loading || compressing}
               className="px-5 py-2 text-sm font-semibold text-white bg-pitbox-steel hover:bg-pitbox-steel/90 rounded-xl transition shadow-sm disabled:opacity-50"
             >
-              {loading ? 'Saving...' : isEditing ? 'Save Changes' : 'Create Vehicle'}
+              {loading ? 'Ukladanie...' : isEditing ? 'Uložiť zmeny' : 'Pridať vozidlo'}
             </button>
           </div>
         </form>

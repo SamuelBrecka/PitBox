@@ -54,7 +54,7 @@ describe('Garage & Vehicle Management (Step 3)', () => {
       expect(screen.getByText('Skoda Octavia Combi')).toBeInTheDocument();
       expect(screen.getByText('BA-999ZZ')).toBeInTheDocument();
       expect(screen.getByText(/150[,\s\u00A0]?000\s*km/)).toBeInTheDocument();
-      expect(screen.getByText('1')).toBeInTheDocument(); // Registered vehicles count KPI
+      expect(screen.getByText('1')).toBeInTheDocument(); // Evidované vozidlá KPI
     });
   });
 
@@ -64,8 +64,8 @@ describe('Garage & Vehicle Management (Step 3)', () => {
     renderWithContext(<GaragePage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/No Vehicles in Your Garage Yet/i)).toBeInTheDocument();
-      expect(screen.getByText(/Add First Vehicle/i)).toBeInTheDocument();
+      expect(screen.getByText(/Vo vašej garáži zatiaľ nie sú žiadne vozidlá/i)).toBeInTheDocument();
+      expect(screen.getByText(/Pridať prvé vozidlo/i)).toBeInTheDocument();
     });
   });
 
@@ -82,11 +82,11 @@ describe('Garage & Vehicle Management (Step 3)', () => {
       />
     );
 
-    expect(screen.getByText(/Current Reading:/i)).toBeInTheDocument();
+    expect(screen.getByText(/Aktuálny stav:/i)).toBeInTheDocument();
     expect(screen.getByText(/150[,\s\u00A0]?000\s*km/)).toBeInTheDocument();
 
-    const input = screen.getByLabelText(/New Odometer Reading/i);
-    const submitBtn = screen.getByRole('button', { name: /Update Reading/i });
+    const input = screen.getByLabelText(/Nový stav tachometra/i);
+    const submitBtn = screen.getByRole('button', { name: /Uložiť stav/i });
 
     // Submit button should be disabled when empty
     expect(submitBtn).toBeDisabled();
@@ -98,12 +98,12 @@ describe('Garage & Vehicle Management (Step 3)', () => {
     // Type a higher value (152000)
     fireEvent.change(input, { target: { value: '152000' } });
     expect(submitBtn).not.toBeDisabled();
-    expect(screen.getByText(/\+2[,\s\u00A0]?000\s*km forward progression/i)).toBeInTheDocument();
+    expect(screen.getByText(/\+2[,\s\u00A0]?000\s*km nárast kilometrov/i)).toBeInTheDocument();
 
     // Use shortcut chip (+1,000 km)
     const plus1000Btn = screen.getByRole('button', { name: /\+1,000 km/i });
     fireEvent.click(plus1000Btn);
-    expect(screen.getByText(/\+1[,\s\u00A0]?000\s*km forward progression/i)).toBeInTheDocument();
+    expect(screen.getByText(/\+1[,\s\u00A0]?000\s*km nárast kilometrov/i)).toBeInTheDocument();
 
     // Mock API success
     vi.spyOn(vehicleApi, 'updateMileage').mockResolvedValue({

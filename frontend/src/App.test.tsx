@@ -14,64 +14,64 @@ describe('PitBox Frontend Application', () => {
     render(<App />);
     expect(screen.getAllByText('PitBox').length).toBeGreaterThan(0);
     expect(
-      screen.getByRole('heading', { name: /Digital Service Book & Vehicle History/i })
+      screen.getByRole('heading', { name: /Digitálna servisná knižka a história vozidla/i })
     ).toBeInTheDocument();
     expect(screen.getByTestId('backend-status')).toBeInTheDocument();
     expect(screen.getByText(/2019 Škoda Octavia Combi 2.0 TDI/i)).toBeInTheDocument();
-    expect(screen.getAllByText('Sign In').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText('Create Free Account')).toBeInTheDocument();
+    expect(screen.getAllByText('Prihlásiť sa').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Vytvoriť bezplatný účet')).toBeInTheDocument();
   });
 
-  it('navigates to login page when Sign In is clicked', async () => {
+  it('navigates to login page when Prihlásiť sa is clicked', async () => {
     render(<App />);
-    const signInButtons = screen.getAllByRole('link', { name: /Sign In/i });
+    const signInButtons = screen.getAllByRole('link', { name: /Prihlásiť sa/i });
     fireEvent.click(signInButtons[0]);
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /Sign In to PitBox/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Prihlásenie do PitBoxu/i })).toBeInTheDocument();
     });
-    expect(screen.getByLabelText(/Email Address/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Password/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/E-mailová adresa/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Heslo/i)).toBeInTheDocument();
   });
 
   it('shows error on login with empty fields', async () => {
     render(<App />);
-    const signInButtons = screen.getAllByRole('link', { name: /Sign In/i });
+    const signInButtons = screen.getAllByRole('link', { name: /Prihlásiť sa/i });
     fireEvent.click(signInButtons[0]);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /^Sign In$/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^Prihlásiť sa$/i })).toBeInTheDocument();
     });
 
-    const form = screen.getByRole('button', { name: /^Sign In$/i }).closest('form')!;
+    const form = screen.getByRole('button', { name: /^Prihlásiť sa$/i }).closest('form')!;
     fireEvent.submit(form);
 
     await waitFor(() => {
       expect(screen.getByTestId('login-error')).toBeInTheDocument();
-      expect(screen.getByText('Please fill in all fields.')).toBeInTheDocument();
+      expect(screen.getByText('Vyplňte prosím všetky polia.')).toBeInTheDocument();
     });
   });
 
   it('navigates to register page and validates password mismatch', async () => {
     render(<App />);
-    const createAccountBtn = screen.getByRole('link', { name: /Create Account/i });
+    const createAccountBtn = screen.getByRole('link', { name: /Vytvoriť účet/i });
     fireEvent.click(createAccountBtn);
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /Create Your PitBox Account/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Vytvorte si účet PitBox/i })).toBeInTheDocument();
     });
 
-    fireEvent.change(screen.getByLabelText(/Full Name/i), { target: { value: 'Jane Doe' } });
-    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'jane@pitbox.io' } });
-    fireEvent.change(screen.getByLabelText(/^Password \(min. 6 characters\)$/i), { target: { value: 'password123' } });
-    fireEvent.change(screen.getByLabelText(/Confirm Password/i), { target: { value: 'different123' } });
+    fireEvent.change(screen.getByLabelText(/Celé meno/i), { target: { value: 'Jana Nováková' } });
+    fireEvent.change(screen.getByLabelText(/E-mailová adresa/i), { target: { value: 'jana@pitbox.io' } });
+    fireEvent.change(screen.getByLabelText(/^Heslo \(min\. 6 znakov\)$/i), { target: { value: 'password123' } });
+    fireEvent.change(screen.getByLabelText(/Potvrdiť heslo/i), { target: { value: 'different123' } });
 
-    const form = screen.getByRole('button', { name: /Create Account/i }).closest('form')!;
+    const form = screen.getByRole('button', { name: /Vytvoriť účet/i }).closest('form')!;
     fireEvent.submit(form);
 
     await waitFor(() => {
       expect(screen.getByTestId('register-error')).toBeInTheDocument();
-      expect(screen.getByText('Passwords do not match.')).toBeInTheDocument();
+      expect(screen.getByText('Heslá sa nezhodujú.')).toBeInTheDocument();
     });
   });
 
@@ -80,7 +80,7 @@ describe('PitBox Frontend Application', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /Sign In to PitBox/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Prihlásenie do PitBoxu/i })).toBeInTheDocument();
     });
   });
 
@@ -99,17 +99,17 @@ describe('PitBox Frontend Application', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/Email Address/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/E-mailová adresa/i)).toBeInTheDocument();
     });
 
-    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'alex@pitbox.io' } });
-    fireEvent.change(screen.getByLabelText(/Password/i), { target: { value: 'secret123' } });
+    fireEvent.change(screen.getByLabelText(/E-mailová adresa/i), { target: { value: 'alex@pitbox.io' } });
+    fireEvent.change(screen.getByLabelText(/Heslo/i), { target: { value: 'secret123' } });
 
-    fireEvent.click(screen.getByRole('button', { name: /^Sign In$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Prihlásiť sa$/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/Welcome back, Alex Parker!/i)).toBeInTheDocument();
-      expect(screen.getByText(/My Garage/i)).toBeInTheDocument();
+      expect(screen.getByText(/Vitajte späť, Alex Parker!/i)).toBeInTheDocument();
+      expect(screen.getByText(/Moja garáž/i)).toBeInTheDocument();
     });
   });
 });

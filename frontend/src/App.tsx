@@ -39,7 +39,7 @@ export const AppContent: React.FC = () => {
       </main>
 
       <footer className="border-t border-pitbox-seafoam/40 py-6 text-center text-xs text-slate-500 bg-white/40">
-        PitBox &copy; {new Date().getFullYear()} &middot; Digital Service Book &middot; Built for Vehicle Enthusiasts
+        PitBox &copy; {new Date().getFullYear()} &middot; Digitálna servisná knižka &middot; Vytvorené pre automobilových nadšencov
       </footer>
     </div>
   );

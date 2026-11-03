@@ -10,6 +10,13 @@ interface VehicleCardProps {
   onDelete: (vehicle: Vehicle) => void;
 }
 
+const FUEL_LABELS: Record<string, string> = {
+  PETROL: 'Benzín',
+  DIESEL: 'Nafta',
+  HYBRID: 'Hybrid',
+  EV: 'Elektro',
+};
+
 export const VehicleCard: React.FC<VehicleCardProps> = ({
   vehicle,
   onQuickMileage,
@@ -38,7 +45,7 @@ export const VehicleCard: React.FC<VehicleCardProps> = ({
         {/* Subtle Fuel Type Badge */}
         <div className="absolute top-3 right-3">
           <span className="bg-white/90 backdrop-blur-xs text-slate-600 text-[10px] font-medium tracking-wider uppercase px-2.5 py-0.5 rounded-full border border-slate-200/80">
-            {vehicle.fuelType}
+            {FUEL_LABELS[vehicle.fuelType] || vehicle.fuelType}
           </span>
         </div>
       </div>
@@ -64,7 +71,7 @@ export const VehicleCard: React.FC<VehicleCardProps> = ({
 
         {/* Clean Odometer Row */}
         <div className="flex items-center justify-between py-2.5 px-3 rounded-xl bg-slate-50/80 border border-slate-100">
-          <span className="text-xs text-slate-500">Odometer</span>
+          <span className="text-xs text-slate-500">Tachometer</span>
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-slate-900 font-mono">
               {vehicle.currentMileage.toLocaleString()} km
@@ -72,7 +79,7 @@ export const VehicleCard: React.FC<VehicleCardProps> = ({
             <button
               type="button"
               onClick={() => onQuickMileage(vehicle)}
-              title="Quick Odometer Update"
+              title="Rýchla úprava tachometra"
               className="text-[11px] font-medium text-pitbox-steel bg-white hover:bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200 transition-colors duration-200 cursor-pointer"
             >
               + km
@@ -86,18 +93,18 @@ export const VehicleCard: React.FC<VehicleCardProps> = ({
             <button
               type="button"
               onClick={() => onEdit(vehicle)}
-              aria-label="Edit Vehicle Profile"
+              aria-label="Upraviť profil vozidla"
               className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors duration-200 cursor-pointer"
-              title="Edit Vehicle Profile"
+              title="Upraviť profil vozidla"
             >
               <Edit3 className="w-4 h-4" />
             </button>
             <button
               type="button"
               onClick={() => onDelete(vehicle)}
-              aria-label="Delete Vehicle"
+              aria-label="Odstrániť vozidlo"
               className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors duration-200 cursor-pointer"
-              title="Delete Vehicle"
+              title="Odstrániť vozidlo"
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -107,7 +114,7 @@ export const VehicleCard: React.FC<VehicleCardProps> = ({
             to={`/vehicles/${vehicle.id}`}
             className="inline-flex items-center text-xs font-medium text-pitbox-steel hover:text-pitbox-dark transition-colors duration-200 cursor-pointer"
           >
-            <span>Open Logbook</span>
+            <span>Otvoriť knižku</span>
             <ArrowRight className="w-3.5 h-3.5 ml-1" />
           </Link>
         </div>
