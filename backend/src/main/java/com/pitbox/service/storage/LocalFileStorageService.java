@@ -18,8 +18,8 @@ import java.util.UUID;
 @Service
 public class LocalFileStorageService implements FileStorageService {
 
-    private static final List<String> ALLOWED_IMAGE_TYPES = List.of(
-        "image/jpeg", "image/png", "image/webp", "image/gif"
+    public static final List<String> ALLOWED_FILE_TYPES = List.of(
+        "image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"
     );
 
     private final Path rootLocation;
@@ -40,11 +40,11 @@ public class LocalFileStorageService implements FileStorageService {
         }
 
         String contentType = file.getContentType();
-        if (contentType == null || !ALLOWED_IMAGE_TYPES.contains(contentType.toLowerCase())) {
-            throw new IllegalArgumentException("Unsupported file type: " + contentType + ". Allowed: JPEG, PNG, WEBP, GIF");
+        if (contentType == null || !ALLOWED_FILE_TYPES.contains(contentType.toLowerCase())) {
+            throw new IllegalArgumentException("Unsupported file type: " + contentType + ". Allowed: JPEG, PNG, WEBP, GIF, PDF");
         }
 
-        String originalFilename = StringUtils.cleanPath(Objects.requireNonNullElse(file.getOriginalFilename(), "photo.jpg"));
+        String originalFilename = StringUtils.cleanPath(Objects.requireNonNullElse(file.getOriginalFilename(), "file"));
         if (originalFilename.contains("..")) {
             throw new IllegalArgumentException("Cannot store file with relative path sequence: " + originalFilename);
         }
@@ -54,6 +54,10 @@ public class LocalFileStorageService implements FileStorageService {
         int dotIndex = originalFilename.lastIndexOf('.');
         if (dotIndex >= 0) {
             extension = originalFilename.substring(dotIndex);
+        } else if ("application/pdf".equalsIgnoreCase(contentType)) {
+            extension = ".pdf";
+        } else {
+            extension = ".jpg";
         }
 
         String sanitizedSubDirectory = StringUtils.cleanPath(subDirectory).replace("..", "").replaceAll("^/+", "");

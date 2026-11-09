@@ -14,6 +14,7 @@ Welcome to the PitBox technical documentation suite.
 - [UI/UX Minimalist Design System](features/ui-design-system.md): Light alabaster palette, Swiss-inspired minimal layout for Landing and Garage pages
 - [Mileage Engine](features/mileage-engine.md): Forward-only odometer updates and audit logging (`MILEAGE_LOGS`)
 - [Service Records (Master-Detail)](features/service-records.md): Itemized service history, cost calculation, category filtering, and odometer auto-advance
+- [File Attachments & Gallery](features/file-attachments.md): Multi-file uploads (PDF invoices & photos), timeline previews, and vehicle gallery
 - [Media & Storage](features/media-upload.md): Client-side image compression and `FileStorageService` abstraction
 - [Reminders & Service Intervals](features/reminders.md): Dynamic interval calculation and status tracking *(Planned)*
 - [TCO Statistics](features/tco-statistics.md): Cost analytics, ownership metrics, and Recharts integration *(Planned)*

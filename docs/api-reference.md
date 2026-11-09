@@ -171,4 +171,45 @@ All requests requiring authentication must include the HTTP header:
 ### 3.5 Delete Service Record
 - **Method & Path:** `DELETE /api/vehicles/{vehicleId}/service-records/{recordId}`
 - **Security:** Bearer Token required.
-- **Response:** `204 No Content`.
+- **Response:** `204 No Content`. Deletes database record and cascades deletion of attached physical files from storage.
+
+---
+
+## 4. File Attachment Endpoints (`/api/vehicles/{vehicleId}/service-records/{recordId}/attachments`)
+
+### 4.1 Upload Attachments
+- **Method & Path:** `POST /api/vehicles/{vehicleId}/service-records/{recordId}/attachments`
+- **Security:** Bearer Token required. Vehicle must belong to authenticated user.
+- **Content-Type:** `multipart/form-data`
+- **Form Param:** `files` (array of `MultipartFile`)
+- **Allowed Types:** `image/jpeg`, `image/png`, `image/webp`, `image/gif`, `application/pdf`
+- **Response:** `201 Created`
+```json
+[
+  {
+    "id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+    "serviceRecordId": "b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e",
+    "fileName": "faktura_servis.pdf",
+    "storagePath": "/uploads/attachments/uuid.pdf",
+    "contentType": "application/pdf",
+    "fileSizeBytes": 204800,
+    "uploadedAt": "2026-10-26T18:30:00Z"
+  }
+]
+```
+
+### 4.2 List Attachments for Service Record
+- **Method & Path:** `GET /api/vehicles/{vehicleId}/service-records/{recordId}/attachments`
+- **Security:** Bearer Token required.
+- **Response:** `200 OK` (Array of `AttachmentResponse` objects).
+
+### 4.3 List All Attachments for Vehicle
+- **Method & Path:** `GET /api/vehicles/{vehicleId}/attachments`
+- **Security:** Bearer Token required. Backs the "Dokumenty a galéria" tab.
+- **Response:** `200 OK` (Array of `AttachmentResponse` objects ordered by `uploadedAt DESC`).
+
+### 4.4 Delete Attachment
+- **Method & Path:** `DELETE /api/vehicles/{vehicleId}/service-records/{recordId}/attachments/{attachmentId}`
+- **Security:** Bearer Token required.
+- **Response:** `204 No Content`. Purges physical file from storage disk.
+

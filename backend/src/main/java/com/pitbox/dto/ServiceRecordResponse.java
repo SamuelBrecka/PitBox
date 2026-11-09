@@ -24,6 +24,7 @@ public class ServiceRecordResponse {
     private String notes;
     private Instant createdAt;
     private List<ServiceItemResponse> items;
+    private List<AttachmentResponse> attachments;
 
     public ServiceRecordResponse() {
     }
@@ -41,6 +42,9 @@ public class ServiceRecordResponse {
         response.setCreatedAt(record.getCreatedAt());
         response.setItems(record.getItems() != null
             ? record.getItems().stream().map(ServiceItemResponse::fromEntity).toList()
+            : List.of());
+        response.setAttachments(record.getAttachments() != null
+            ? record.getAttachments().stream().map(AttachmentResponse::fromEntity).toList()
             : List.of());
         return response;
     }

@@ -31,10 +31,26 @@ class AuthControllerTest {
     private ObjectMapper objectMapper;
 
     @Autowired
+    private com.pitbox.repository.AttachmentRepository attachmentRepository;
+
+    @Autowired
+    private com.pitbox.repository.ServiceRecordRepository serviceRecordRepository;
+
+    @Autowired
+    private com.pitbox.repository.MileageLogRepository mileageLogRepository;
+
+    @Autowired
+    private com.pitbox.repository.VehicleRepository vehicleRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     @BeforeEach
     void setUp() {
+        attachmentRepository.deleteAll();
+        serviceRecordRepository.deleteAll();
+        mileageLogRepository.deleteAll();
+        vehicleRepository.deleteAll();
         userRepository.deleteAll();
     }
 

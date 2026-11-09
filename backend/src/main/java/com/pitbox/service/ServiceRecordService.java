@@ -4,6 +4,7 @@ import com.pitbox.dto.CreateServiceRecordRequest;
 import com.pitbox.dto.ServiceItemRequest;
 import com.pitbox.dto.ServiceRecordResponse;
 import com.pitbox.exception.ResourceNotFoundException;
+import com.pitbox.model.Attachment;
 import com.pitbox.model.MileageLog;
 import com.pitbox.model.ServiceItem;
 import com.pitbox.model.ServiceRecord;
@@ -11,6 +12,7 @@ import com.pitbox.model.Vehicle;
 import com.pitbox.repository.MileageLogRepository;
 import com.pitbox.repository.ServiceRecordRepository;
 import com.pitbox.repository.VehicleRepository;
+import com.pitbox.service.storage.FileStorageService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,13 +28,16 @@ public class ServiceRecordService {
     private final ServiceRecordRepository serviceRecordRepository;
     private final VehicleRepository vehicleRepository;
     private final MileageLogRepository mileageLogRepository;
+    private final FileStorageService fileStorageService;
 
     public ServiceRecordService(ServiceRecordRepository serviceRecordRepository,
                                 VehicleRepository vehicleRepository,
-                                MileageLogRepository mileageLogRepository) {
+                                MileageLogRepository mileageLogRepository,
+                                FileStorageService fileStorageService) {
         this.serviceRecordRepository = serviceRecordRepository;
         this.vehicleRepository = vehicleRepository;
         this.mileageLogRepository = mileageLogRepository;
+        this.fileStorageService = fileStorageService;
     }
 
     @Transactional(readOnly = true)
@@ -94,6 +99,13 @@ public class ServiceRecordService {
         findVehicleForUser(vehicleId, userId);
         ServiceRecord record = serviceRecordRepository.findByIdAndVehicleId(recordId, vehicleId)
             .orElseThrow(() -> new ResourceNotFoundException("Service record not found"));
+
+        if (record.getAttachments() != null) {
+            for (Attachment attachment : record.getAttachments()) {
+                fileStorageService.deleteFile(attachment.getStoragePath());
+            }
+        }
+
         serviceRecordRepository.delete(record);
     }
 

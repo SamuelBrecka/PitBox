@@ -39,3 +39,25 @@ export async function compressVehicleImage(file: File): Promise<CompressionResul
     };
   }
 }
+
+export async function compressServiceAttachment(file: File): Promise<File> {
+  if (file.type === 'application/pdf') {
+    return file;
+  }
+
+  const options = {
+    maxSizeMB: 0.8,
+    maxWidthOrHeight: 1920,
+    useWebWorker: typeof window !== 'undefined' && typeof Worker !== 'undefined',
+  };
+
+  try {
+    const compressedBlob = await imageCompression(file, options);
+    return new File([compressedBlob], file.name, {
+      type: compressedBlob.type || file.type,
+    });
+  } catch (error) {
+    console.warn('Attachment image compression fallback to original:', error);
+    return file;
+  }
+}

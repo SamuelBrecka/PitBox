@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { X, Wrench, Plus, Trash2, AlertCircle, Gauge } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Wrench, Plus, Trash2, AlertCircle, Gauge, Paperclip, UploadCloud, Loader2 } from 'lucide-react';
 import { serviceRecordApi } from '../api/serviceRecordApi';
+import { attachmentApi } from '../api/attachmentApi';
+import { compressServiceAttachment } from '../utils/compression';
 import {
   CreateServiceItemPayload,
   CreateServiceRecordPayload,
   ServiceCategory,
   ServiceItemType,
   ServiceRecord,
+  Attachment,
 } from '../types/serviceRecord';
 
 interface ServiceRecordModalProps {
@@ -68,6 +71,14 @@ export const ServiceRecordModal: React.FC<ServiceRecordModalProps> = ({
       : [{ name: '', itemType: 'PART', quantity: 1, unitPrice: '' }]
   );
 
+  // Attachments state
+  const [existingAttachments, setExistingAttachments] = useState<Attachment[]>(
+    record?.attachments || []
+  );
+  const [queuedFiles, setQueuedFiles] = useState<File[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -88,6 +99,8 @@ export const ServiceRecordModal: React.FC<ServiceRecordModalProps> = ({
             }))
           : [{ name: '', itemType: 'PART', quantity: 1, unitPrice: '' }]
       );
+      setExistingAttachments(record?.attachments || []);
+      setQueuedFiles([]);
       setError(null);
     }
   }, [isOpen, record, currentVehicleMileage]);
@@ -118,6 +131,38 @@ export const ServiceRecordModal: React.FC<ServiceRecordModalProps> = ({
   const grandTotal = items.reduce((sum, item) => sum + computeLineTotal(item), 0);
   const parsedMileage = Number(mileageAtService) || 0;
   const willAdvanceOdometer = parsedMileage > currentVehicleMileage;
+
+  const handleFileDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const newFiles = Array.from(e.dataTransfer.files);
+      setQueuedFiles((prev) => [...prev, ...newFiles]);
+    }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const newFiles = Array.from(e.target.files);
+      setQueuedFiles((prev) => [...prev, ...newFiles]);
+    }
+  };
+
+  const handleRemoveQueuedFile = (index: number) => {
+    setQueuedFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleDeleteExistingAttachment = async (attachmentId: string) => {
+    if (!record) return;
+    if (!window.confirm('Naozaj chcete odstrániť túto prílohu?')) return;
+
+    try {
+      await attachmentApi.deleteAttachment(vehicleId, record.id, attachmentId);
+      setExistingAttachments((prev) => prev.filter((a) => a.id !== attachmentId));
+    } catch {
+      alert('Nepodarilo sa odstrániť prílohu.');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,6 +221,25 @@ export const ServiceRecordModal: React.FC<ServiceRecordModalProps> = ({
           ? await serviceRecordApi.updateServiceRecord(vehicleId, record.id, payload)
           : await serviceRecordApi.createServiceRecord(vehicleId, payload);
 
+      // Upload queued attachments if any
+      if (queuedFiles.length > 0) {
+        const processedFiles: File[] = [];
+        for (const file of queuedFiles) {
+          if (file.type.startsWith('image/')) {
+            const compressed = await compressServiceAttachment(file);
+            processedFiles.push(compressed);
+          } else {
+            processedFiles.push(file);
+          }
+        }
+        const uploadedAttachments = await attachmentApi.uploadAttachments(
+          vehicleId,
+          saved.id,
+          processedFiles
+        );
+        saved.attachments = [...(saved.attachments || []), ...uploadedAttachments];
+      }
+
       onSuccess(saved);
       onClose();
     } catch (err: unknown) {
@@ -202,6 +266,7 @@ export const ServiceRecordModal: React.FC<ServiceRecordModalProps> = ({
           <button
             type="button"
             onClick={onClose}
+            aria-label="Zatvoriť"
             className="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition"
           >
             <X className="w-5 h-5" />
@@ -416,6 +481,146 @@ export const ServiceRecordModal: React.FC<ServiceRecordModalProps> = ({
             </div>
           </div>
 
+          {/* Attachments Section */}
+          <div className="bg-pitbox-cream/30 p-4 rounded-xl border border-pitbox-seafoam/60 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-xs font-bold text-pitbox-steel uppercase tracking-wider flex items-center">
+                  <Paperclip className="w-3.5 h-3.5 mr-1 text-pitbox-glacier" />
+                  Prílohy a dokumentácia (Faktúry, STK protokoly, foto)
+                </h4>
+                <p className="text-[11px] text-slate-500">
+                  Podporované formáty: JPG, PNG, WEBP a PDF (max. 10 MB na súbor). Fotografie sú komprimované v prehliadači.
+                </p>
+              </div>
+              <span className="text-[11px] font-mono font-bold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
+                {existingAttachments.length + queuedFiles.length} súborov
+              </span>
+            </div>
+
+            {/* Dropzone */}
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragging(true);
+              }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={handleFileDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={`cursor-pointer rounded-xl border-2 border-dashed p-4 text-center transition flex flex-col items-center justify-center gap-1.5 ${
+                isDragging
+                  ? 'border-pitbox-steel bg-pitbox-seafoam/30 scale-[0.99]'
+                  : 'border-slate-300 bg-white hover:border-pitbox-glacier hover:bg-pitbox-cream/20'
+              }`}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/jpeg,image/png,image/webp,application/pdf"
+                className="hidden"
+                onChange={handleFileInputChange}
+              />
+              <div className="w-8 h-8 rounded-full bg-pitbox-seafoam/50 flex items-center justify-center text-pitbox-steel">
+                <UploadCloud className="w-4 h-4" />
+              </div>
+              <p className="text-xs font-bold text-pitbox-dark">
+                Presuňte súbory sem alebo <span className="text-pitbox-steel underline">vyberte z disku</span>
+              </p>
+              <p className="text-[10px] text-slate-400">
+                Fotografie dielov, bločky alebo faktúry vo formáte PDF
+              </p>
+            </div>
+
+            {/* Existing Attachments */}
+            {existingAttachments.length > 0 && (
+              <div className="space-y-1.5 pt-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  Už uložené prílohy ({existingAttachments.length})
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {existingAttachments.map((att) => (
+                    <div
+                      key={att.id}
+                      className="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-200 text-xs shadow-2xs"
+                    >
+                      <div className="flex items-center space-x-2 truncate pr-2">
+                        {att.contentType.includes('pdf') ? (
+                          <div className="w-7 h-7 rounded bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 font-bold text-[9px]">
+                            PDF
+                          </div>
+                        ) : (
+                          <img
+                            src={att.storagePath}
+                            alt={att.fileName}
+                            className="w-7 h-7 object-cover rounded shrink-0 border border-slate-100"
+                          />
+                        )}
+                        <div className="truncate">
+                          <p className="font-semibold text-pitbox-dark truncate text-xs">{att.fileName}</p>
+                          <p className="text-[10px] text-slate-400 font-mono">
+                            {(att.fileSizeBytes / 1024).toFixed(0)} KB
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteExistingAttachment(att.id)}
+                        className="p-1 text-slate-400 hover:text-rose-600 rounded transition shrink-0"
+                        title="Odstrániť prílohu"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Queued Files */}
+            {queuedFiles.length > 0 && (
+              <div className="space-y-1.5 pt-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-pitbox-steel">
+                  Pripravené na nahranie ({queuedFiles.length})
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {queuedFiles.map((qf, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-2 bg-white rounded-lg border border-pitbox-seafoam text-xs shadow-2xs"
+                    >
+                      <div className="flex items-center space-x-2 truncate pr-2">
+                        {qf.type === 'application/pdf' ? (
+                          <div className="w-7 h-7 rounded bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 font-bold text-[9px]">
+                            PDF
+                          </div>
+                        ) : (
+                          <div className="w-7 h-7 rounded bg-pitbox-glacier/30 text-pitbox-steel flex items-center justify-center shrink-0 font-bold text-[9px]">
+                            FOTO
+                          </div>
+                        )}
+                        <div className="truncate">
+                          <p className="font-semibold text-pitbox-dark truncate text-xs">{qf.name}</p>
+                          <p className="text-[10px] text-slate-400 font-mono">
+                            {(qf.size / 1024).toFixed(0)} KB
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveQueuedFile(idx)}
+                        className="p-1 text-slate-400 hover:text-rose-600 rounded transition shrink-0"
+                        title="Zrušiť nahranie"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Technician / Owner Notes */}
           <div>
             <label htmlFor="service-notes" className="block text-xs font-semibold text-pitbox-dark mb-1">
@@ -444,8 +649,9 @@ export const ServiceRecordModal: React.FC<ServiceRecordModalProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2 text-sm font-semibold text-white bg-pitbox-steel hover:bg-pitbox-steel/90 rounded-xl transition shadow-sm disabled:opacity-50"
+              className="inline-flex items-center px-5 py-2 text-sm font-semibold text-white bg-pitbox-steel hover:bg-pitbox-steel/90 rounded-xl transition shadow-sm disabled:opacity-50"
             >
+              {loading && <Loader2 className="w-4 h-4 animate-spin mr-1.5" />}
               {loading ? 'Ukladanie...' : isEditing ? 'Uložiť zmeny' : 'Uložiť záznam'}
             </button>
           </div>

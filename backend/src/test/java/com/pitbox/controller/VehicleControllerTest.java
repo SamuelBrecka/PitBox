@@ -49,6 +49,12 @@ class VehicleControllerTest {
     private VehicleRepository vehicleRepository;
 
     @Autowired
+    private com.pitbox.repository.AttachmentRepository attachmentRepository;
+
+    @Autowired
+    private com.pitbox.repository.ServiceRecordRepository serviceRecordRepository;
+
+    @Autowired
     private MileageLogRepository mileageLogRepository;
 
     private String userToken;
@@ -56,6 +62,8 @@ class VehicleControllerTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        attachmentRepository.deleteAll();
+        serviceRecordRepository.deleteAll();
         mileageLogRepository.deleteAll();
         vehicleRepository.deleteAll();
         userRepository.deleteAll();

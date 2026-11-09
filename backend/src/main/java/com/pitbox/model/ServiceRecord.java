@@ -63,6 +63,9 @@ public class ServiceRecord {
     @OneToMany(mappedBy = "serviceRecord", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ServiceItem> items = new ArrayList<>();
 
+    @OneToMany(mappedBy = "serviceRecord", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Attachment> attachments = new ArrayList<>();
+
     public ServiceRecord() {
     }
 
@@ -76,6 +79,16 @@ public class ServiceRecord {
             item.setServiceRecord(null);
         }
         items.clear();
+    }
+
+    public void addAttachment(Attachment attachment) {
+        attachments.add(attachment);
+        attachment.setServiceRecord(this);
+    }
+
+    public void removeAttachment(Attachment attachment) {
+        attachments.remove(attachment);
+        attachment.setServiceRecord(null);
     }
 
     @PrePersist

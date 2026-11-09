@@ -19,16 +19,24 @@ import {
   Plus,
   Wrench,
   Building2,
+  Paperclip,
+  UploadCloud,
+  Eye,
+  Download,
+  ExternalLink,
 } from 'lucide-react';
 import { useParams, Link, useNavigate } from '../router/Router';
 import { vehicleApi } from '../api/vehicleApi';
 import { serviceRecordApi } from '../api/serviceRecordApi';
+import { attachmentApi } from '../api/attachmentApi';
 import { MileageLog, Vehicle } from '../types/vehicle';
-import { ServiceCategory, ServiceRecord } from '../types/serviceRecord';
+import { ServiceCategory, ServiceRecord, Attachment } from '../types/serviceRecord';
 import { compressVehicleImage } from '../utils/compression';
 import { QuickMileageModal } from '../components/QuickMileageModal';
 import { VehicleModal } from '../components/VehicleModal';
 import { ServiceRecordModal } from '../components/ServiceRecordModal';
+import { AttachmentLightbox } from '../components/AttachmentLightbox';
+import { UploadAttachmentModal } from '../components/UploadAttachmentModal';
 
 const CATEGORY_BADGES: Record<ServiceCategory, { label: string; classes: string }> = {
   MAINTENANCE: {
@@ -69,33 +77,45 @@ export const VehicleDetailPage: React.FC = () => {
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [mileageLogs, setMileageLogs] = useState<MileageLog[]>([]);
   const [serviceRecords, setServiceRecords] = useState<ServiceRecord[]>([]);
+  const [vehicleAttachments, setVehicleAttachments] = useState<Attachment[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+  const [galleryFilter, setGalleryFilter] = useState<'ALL' | 'PHOTOS' | 'DOCS'>('ALL');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Active tab (default to service_history as primary logbook view)
-  const [activeTab, setActiveTab] = useState<'service_history' | 'mileage_logs' | 'reminders' | 'analytics'>('service_history');
+  // Active tab
+  const [activeTab, setActiveTab] = useState<
+    'service_history' | 'mileage_logs' | 'documents' | 'reminders' | 'analytics'
+  >('service_history');
 
   // Modals & upload
   const [isQuickMileageOpen, setIsQuickMileageOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
+  const [isUploadAttachmentOpen, setIsUploadAttachmentOpen] = useState(false);
   const [editingServiceRecord, setEditingServiceRecord] = useState<ServiceRecord | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  // Lightbox
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxAttachments, setLightboxAttachments] = useState<Attachment[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   const loadData = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     setError(null);
     try {
-      const [vData, logsData, recordsData] = await Promise.all([
+      const [vData, logsData, recordsData, attachmentsData] = await Promise.all([
         vehicleApi.getVehicle(id),
         vehicleApi.getMileageLogs(id),
         serviceRecordApi.getServiceRecords(id),
+        attachmentApi.getAttachmentsByVehicle(id).catch(() => [] as Attachment[]),
       ]);
       setVehicle(vData);
       setMileageLogs(logsData);
       setServiceRecords(recordsData);
+      setVehicleAttachments(attachmentsData);
     } catch {
       setError('Vozidlo sa nenašlo alebo sa nepodarilo načítať údaje.');
     } finally {
@@ -107,16 +127,18 @@ export const VehicleDetailPage: React.FC = () => {
     loadData();
   }, [loadData]);
 
-  const refreshVehicleAndLogs = useCallback(async () => {
+  const refreshVehicleAndRecords = useCallback(async () => {
     if (!id) return;
-    const [vData, logsData, recordsData] = await Promise.all([
+    const [vData, logsData, recordsData, attachmentsData] = await Promise.all([
       vehicleApi.getVehicle(id),
       vehicleApi.getMileageLogs(id),
       serviceRecordApi.getServiceRecords(id),
+      attachmentApi.getAttachmentsByVehicle(id).catch(() => [] as Attachment[]),
     ]);
     setVehicle(vData);
     setMileageLogs(logsData);
     setServiceRecords(recordsData);
+    setVehicleAttachments(attachmentsData);
   }, [id]);
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -162,10 +184,29 @@ export const VehicleDetailPage: React.FC = () => {
 
     try {
       await serviceRecordApi.deleteServiceRecord(vehicle.id, record.id);
-      setServiceRecords((prev) => prev.filter((r) => r.id !== record.id));
+      refreshVehicleAndRecords();
     } catch {
       alert('Nepodarilo sa odstrániť servisný záznam.');
     }
+  };
+
+  const handleDeleteAttachment = async (recordId: string, attachmentId: string) => {
+    if (!vehicle) return;
+    const ok = window.confirm('Naozaj chcete odstrániť túto prílohu?');
+    if (!ok) return;
+
+    try {
+      await attachmentApi.deleteAttachment(vehicle.id, recordId, attachmentId);
+      refreshVehicleAndRecords();
+    } catch {
+      alert('Nepodarilo sa odstrániť prílohu.');
+    }
+  };
+
+  const openLightbox = (items: Attachment[], index: number) => {
+    setLightboxAttachments(items);
+    setLightboxIndex(index);
+    setLightboxOpen(true);
   };
 
   const filteredServiceRecords =
@@ -174,6 +215,12 @@ export const VehicleDetailPage: React.FC = () => {
       : serviceRecords.filter((r) => r.category === selectedCategory);
 
   const totalServiceSpend = filteredServiceRecords.reduce((acc, r) => acc + Number(r.totalCost || 0), 0);
+
+  const filteredAttachments = vehicleAttachments.filter((a) => {
+    if (galleryFilter === 'PHOTOS') return a.contentType.startsWith('image/');
+    if (galleryFilter === 'DOCS') return a.contentType === 'application/pdf';
+    return true;
+  });
 
   if (loading) {
     return (
@@ -405,6 +452,19 @@ export const VehicleDetailPage: React.FC = () => {
 
           <button
             type="button"
+            onClick={() => setActiveTab('documents')}
+            className={`pb-3 text-sm font-bold flex items-center space-x-2 border-b-2 transition ${
+              activeTab === 'documents'
+                ? 'border-pitbox-steel text-pitbox-steel'
+                : 'border-transparent text-slate-500 hover:text-pitbox-steel'
+            }`}
+          >
+            <Paperclip className="w-4 h-4" />
+            <span>Dokumenty a galéria ({vehicleAttachments.length})</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab('mileage_logs')}
             className={`pb-3 text-sm font-bold flex items-center space-x-2 border-b-2 transition ${
               activeTab === 'mileage_logs'
@@ -451,6 +511,7 @@ export const VehicleDetailPage: React.FC = () => {
 
         {/* Tab Content */}
         <div className="mt-6">
+          {/* 1. SERVICE HISTORY TAB */}
           {activeTab === 'service_history' && (
             <div className="space-y-6">
               {/* Filter & Summary Bar */}
@@ -502,7 +563,7 @@ export const VehicleDetailPage: React.FC = () => {
                   <Wrench className="w-10 h-10 text-pitbox-glacier mx-auto mb-2" />
                   <h4 className="font-bold text-pitbox-dark">Žiadne servisné záznamy</h4>
                   <p className="text-xs text-slate-600 mt-1 max-w-md mx-auto">
-                    Zaznamenajte prvú návštevu servisu, výmenu oleja alebo kontrolu STK s podrobným rozpisom dielov a práce.
+                    Zaznamenajte prvú návštevu servisu, výmenu oleja alebo kontrolu STK s podrobným rozpisom dielov, práce a príloh.
                   </p>
                   <button
                     type="button"
@@ -520,6 +581,8 @@ export const VehicleDetailPage: React.FC = () => {
                 <div className="relative pl-6 border-l-2 border-pitbox-seafoam space-y-6">
                   {filteredServiceRecords.map((record) => {
                     const badge = CATEGORY_BADGES[record.category] || CATEGORY_BADGES.OTHER;
+                    const recordAttachments = record.attachments || [];
+
                     return (
                       <div key={record.id} className="relative bg-white rounded-2xl border border-pitbox-seafoam/60 shadow-xs overflow-hidden">
                         {/* Timeline Node Dot */}
@@ -613,6 +676,60 @@ export const VehicleDetailPage: React.FC = () => {
                               {record.notes}
                             </div>
                           )}
+
+                          {/* Attachments Section in Card */}
+                          {recordAttachments.length > 0 && (
+                            <div className="mt-3 pt-3 border-t border-slate-100">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center">
+                                <Paperclip className="w-3 h-3 mr-1 text-pitbox-glacier" />
+                                Prílohy a doklady ({recordAttachments.length})
+                              </span>
+
+                              <div className="flex flex-wrap items-center gap-2">
+                                {/* Image thumbnails */}
+                                {recordAttachments
+                                  .filter((a) => !a.contentType.includes('pdf'))
+                                  .map((img) => (
+                                    <button
+                                      key={img.id}
+                                      type="button"
+                                      onClick={() => openLightbox(recordAttachments, recordAttachments.indexOf(img))}
+                                      className="group relative w-12 h-12 rounded-lg overflow-hidden border border-pitbox-seafoam/80 hover:border-pitbox-steel transition shadow-2xs focus:outline-none focus:ring-2 focus:ring-pitbox-steel/40"
+                                    >
+                                      <img
+                                        src={img.storagePath}
+                                        alt={img.fileName}
+                                        className="w-full h-full object-cover transition duration-150 group-hover:scale-110"
+                                        loading="lazy"
+                                      />
+                                      <div className="absolute inset-0 bg-pitbox-dark/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+                                        <Eye className="w-3.5 h-3.5 text-white" />
+                                      </div>
+                                    </button>
+                                  ))}
+
+                                {/* PDF document pills */}
+                                {recordAttachments
+                                  .filter((a) => a.contentType.includes('pdf'))
+                                  .map((doc) => (
+                                    <a
+                                      key={doc.id}
+                                      href={doc.storagePath}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center px-2.5 py-1.5 rounded-lg border border-slate-200 bg-pitbox-cream/40 hover:bg-white hover:border-pitbox-glacier text-xs text-pitbox-dark transition shadow-2xs max-w-[220px]"
+                                    >
+                                      <FileText className="w-3.5 h-3.5 text-rose-600 mr-1.5 shrink-0" />
+                                      <span className="truncate text-xs font-semibold mr-1.5">{doc.fileName}</span>
+                                      <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                                        {(doc.fileSizeBytes / 1024).toFixed(0)} KB
+                                      </span>
+                                      <ExternalLink className="w-3 h-3 ml-1 text-slate-400 shrink-0" />
+                                    </a>
+                                  ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -622,6 +739,188 @@ export const VehicleDetailPage: React.FC = () => {
             </div>
           )}
 
+          {/* 2. DOCUMENTS & GALLERY TAB */}
+          {activeTab === 'documents' && (
+            <div className="space-y-6">
+              {/* Filter & Upload Toolbar */}
+              <div className="bg-white rounded-2xl border border-pitbox-seafoam/60 p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                {/* Filter Pills */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {[
+                    { key: 'ALL', label: 'Všetko', count: vehicleAttachments.length },
+                    {
+                      key: 'PHOTOS',
+                      label: 'Fotografie',
+                      count: vehicleAttachments.filter((a) => !a.contentType.includes('pdf')).length,
+                    },
+                    {
+                      key: 'DOCS',
+                      label: 'Faktúry a dokumenty (PDF)',
+                      count: vehicleAttachments.filter((a) => a.contentType.includes('pdf')).length,
+                    },
+                  ].map((f) => (
+                    <button
+                      key={f.key}
+                      type="button"
+                      onClick={() => setGalleryFilter(f.key as 'ALL' | 'PHOTOS' | 'DOCS')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 ${
+                        galleryFilter === f.key
+                          ? 'bg-pitbox-steel text-white shadow-2xs'
+                          : 'bg-pitbox-cream/60 text-slate-600 hover:bg-pitbox-seafoam/30'
+                      }`}
+                    >
+                      <span>{f.label}</span>
+                      <span
+                        className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                          galleryFilter === f.key ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
+                        }`}
+                      >
+                        {f.count}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Direct Upload Action */}
+                <button
+                  type="button"
+                  onClick={() => setIsUploadAttachmentOpen(true)}
+                  className="inline-flex items-center px-3.5 py-2 text-xs font-bold text-white bg-pitbox-steel hover:bg-pitbox-steel/90 rounded-xl shadow-xs transition shrink-0"
+                >
+                  <UploadCloud className="w-4 h-4 mr-1.5" />
+                  Nahrať prílohu
+                </button>
+              </div>
+
+              {/* Empty State */}
+              {filteredAttachments.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-dashed border-pitbox-seafoam/80 p-12 text-center">
+                  <div className="w-12 h-12 rounded-full bg-pitbox-seafoam/40 flex items-center justify-center text-pitbox-steel mx-auto mb-3">
+                    <Paperclip className="w-6 h-6 text-pitbox-glacier" />
+                  </div>
+                  <h4 className="font-bold text-pitbox-dark text-base">Žiadne dokumenty ani fotografie</h4>
+                  <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                    Nahrajte servisné faktúry, protokoly technickej a emisnej kontroly (STK/EK) alebo fotografie dielov a opráv.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsUploadAttachmentOpen(true)}
+                    className="mt-4 inline-flex items-center px-4 py-2 text-xs font-bold text-white bg-pitbox-steel hover:bg-pitbox-steel/90 rounded-xl shadow-xs transition"
+                  >
+                    <UploadCloud className="w-4 h-4 mr-1.5" />
+                    Nahrať prvú prílohu
+                  </button>
+                </div>
+              ) : (
+                /* Responsive Gallery Grid */
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  {filteredAttachments.map((att) => {
+                    const isPdf = att.contentType.includes('pdf');
+                    const linkedRecord = serviceRecords.find((r) => r.id === att.serviceRecordId);
+
+                    return (
+                      <div
+                        key={att.id}
+                        className="group bg-white rounded-2xl border border-pitbox-seafoam/60 shadow-xs overflow-hidden flex flex-col transition hover:shadow-md hover:border-pitbox-glacier"
+                      >
+                        {/* Media Thumbnail Container */}
+                        <div className="relative aspect-4/3 bg-pitbox-cream/50 overflow-hidden flex items-center justify-center">
+                          {isPdf ? (
+                            <div className="flex flex-col items-center justify-center p-4 text-center">
+                              <div className="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center mb-1 font-bold text-sm shadow-2xs">
+                                PDF
+                              </div>
+                              <span className="text-[10px] text-slate-400 font-mono">
+                                {(att.fileSizeBytes / 1024).toFixed(0)} KB
+                              </span>
+                            </div>
+                          ) : (
+                            <img
+                              src={att.storagePath}
+                              alt={att.fileName}
+                              className="w-full h-full object-cover transition duration-200 group-hover:scale-105"
+                              loading="lazy"
+                            />
+                          )}
+
+                          {/* Hover overlay with action buttons */}
+                          <div className="absolute inset-0 bg-pitbox-dark/60 opacity-0 group-hover:opacity-100 flex items-center justify-center space-x-2 transition p-2">
+                            {isPdf ? (
+                              <a
+                                href={att.storagePath}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2 bg-white text-pitbox-steel rounded-lg hover:bg-pitbox-seafoam transition shadow-xs"
+                                title="Otvoriť PDF"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </a>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => openLightbox(filteredAttachments, filteredAttachments.indexOf(att))}
+                                className="p-2 bg-white text-pitbox-steel rounded-lg hover:bg-pitbox-seafoam transition shadow-xs"
+                                title="Zväčšiť fotografiu"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                            )}
+                            <a
+                              href={att.storagePath}
+                              download={att.fileName}
+                              className="p-2 bg-white text-pitbox-steel rounded-lg hover:bg-pitbox-seafoam transition shadow-xs"
+                              title="Stiahnuť súbor"
+                            >
+                              <Download className="w-4 h-4" />
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteAttachment(att.serviceRecordId, att.id)}
+                              className="p-2 bg-white text-rose-600 rounded-lg hover:bg-rose-50 transition shadow-xs"
+                              title="Odstrániť prílohu"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Card Meta Footer */}
+                        <div className="p-3 flex flex-col justify-between flex-1 bg-white">
+                          <div>
+                            <p
+                              className="text-xs font-bold text-pitbox-dark truncate"
+                              title={att.fileName}
+                            >
+                              {att.fileName}
+                            </p>
+                            <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                              {new Date(att.uploadedAt).toLocaleDateString('sk-SK')} • {(att.fileSizeBytes / 1024).toFixed(0)} KB
+                            </p>
+                          </div>
+
+                          {/* Linked Service Badge */}
+                          <div className="mt-2.5 pt-2 border-t border-slate-100">
+                            {linkedRecord ? (
+                              <span
+                                className="inline-block max-w-full truncate text-[10px] font-bold text-pitbox-steel bg-pitbox-seafoam/50 px-2 py-0.5 rounded"
+                                title={`${linkedRecord.serviceDate} (${linkedRecord.mileageAtService.toLocaleString()} km)`}
+                              >
+                                Servis {linkedRecord.serviceDate}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-slate-400 italic">Príloha servisu</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 3. MILEAGE LOGS TAB */}
           {activeTab === 'mileage_logs' && (
             <div className="bg-white rounded-2xl border border-pitbox-seafoam/60 overflow-hidden shadow-xs">
               <div className="px-6 py-4 border-b border-pitbox-seafoam/40 flex items-center justify-between">
@@ -674,6 +973,7 @@ export const VehicleDetailPage: React.FC = () => {
             </div>
           )}
 
+          {/* 4. REMINDERS TAB */}
           {activeTab === 'reminders' && (
             <div className="bg-white rounded-2xl border border-dashed border-pitbox-seafoam/80 p-8 text-center">
               <ShieldCheck className="w-10 h-10 text-pitbox-glacier mx-auto mb-2" />
@@ -684,6 +984,7 @@ export const VehicleDetailPage: React.FC = () => {
             </div>
           )}
 
+          {/* 5. ANALYTICS TAB */}
           {activeTab === 'analytics' && (
             <div className="bg-white rounded-2xl border border-dashed border-pitbox-seafoam/80 p-8 text-center">
               <PieChart className="w-10 h-10 text-pitbox-glacier mx-auto mb-2" />
@@ -721,8 +1022,26 @@ export const VehicleDetailPage: React.FC = () => {
           setEditingServiceRecord(null);
         }}
         onSuccess={() => {
-          refreshVehicleAndLogs();
+          refreshVehicleAndRecords();
         }}
+      />
+
+      <UploadAttachmentModal
+        vehicleId={vehicle.id}
+        serviceRecords={serviceRecords}
+        isOpen={isUploadAttachmentOpen}
+        onClose={() => setIsUploadAttachmentOpen(false)}
+        onSuccess={() => {
+          refreshVehicleAndRecords();
+        }}
+      />
+
+      <AttachmentLightbox
+        attachments={lightboxAttachments}
+        currentIndex={lightboxIndex}
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        onNavigate={(idx) => setLightboxIndex(idx)}
       />
     </div>
   );

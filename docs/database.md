@@ -75,6 +75,22 @@ All tables use UUID v4 primary keys (`gen_random_uuid()`), cascading foreign key
 
 ---
 
+### `attachments`
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `UUID` | `PRIMARY KEY DEFAULT gen_random_uuid()` | Unique attachment identifier |
+| `service_record_id` | `UUID` | `NOT NULL REFERENCES service_records(id) ON DELETE CASCADE` | Parent service record |
+| `file_name` | `VARCHAR(255)` | `NOT NULL` | Original client file name |
+| `storage_path` | `VARCHAR(500)` | `NOT NULL` | Relative volume storage path (`/uploads/attachments/...`) |
+| `content_type` | `VARCHAR(100)` | `NOT NULL` | MIME type (`application/pdf`, `image/webp`, `image/jpeg`, etc.) |
+| `file_size_bytes` | `BIGINT` | `NOT NULL` | File size in bytes |
+| `uploaded_at` | `TIMESTAMP WITH TIME ZONE` | `NOT NULL DEFAULT CURRENT_TIMESTAMP` | Timestamp when file was uploaded |
+
+**Indexes:**
+- `idx_attachments_record_id` ON `attachments(service_record_id)`
+
+---
+
 ## 3. Flyway Migrations History
 - `V1__initial_schema.sql`: Initial tables creation (`users`, `vehicles`, `mileage_logs`, `service_records`, `service_items`, `attachments`, `reminders`).
 - `V2__seed_default_users.sql`: Seed default user (`user@pitbox.io`, `ROLE_USER`) and admin user (`admin@pitbox.io`, `ROLE_ADMIN`) with BCrypt-hashed passwords.

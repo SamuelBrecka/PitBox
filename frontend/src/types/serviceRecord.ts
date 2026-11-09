@@ -1,6 +1,16 @@
 export type ServiceCategory = 'MAINTENANCE' | 'REPAIR' | 'INSPECTION' | 'OTHER';
 export type ServiceItemType = 'PART' | 'LABOR' | 'FLUID';
 
+export interface Attachment {
+  id: string;
+  serviceRecordId: string;
+  fileName: string;
+  storagePath: string;
+  contentType: string;
+  fileSizeBytes: number;
+  uploadedAt: string;
+}
+
 export interface ServiceItem {
   id?: string;
   name: string;
@@ -21,6 +31,7 @@ export interface ServiceRecord {
   notes?: string | null;
   createdAt: string;
   items: ServiceItem[];
+  attachments?: Attachment[];
 }
 
 export interface CreateServiceItemPayload {
